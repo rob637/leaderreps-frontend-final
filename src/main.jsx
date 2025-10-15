@@ -1,31 +1,42 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
-import './index.css'; // Import global styles
+import './index.css';
 
-// Define global variables expected by the App component
-// NOTE: You must replace the placeholder values below with your actual Firebase project configuration.
-if (typeof window.__firebase_config === 'undefined') {
-    window.__firebase_config = JSON.stringify({
-        apiKey: "YOUR_FIREBASE_API_KEY", // REPLACE with your actual Firebase API Key
-        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_PROJECT_ID.appspot.com",
-        messagingSenderId: "YOUR_SENDER_ID",
-        appId: "YOUR_APP_ID"
-    });
-}
-if (typeof window.__app_id === 'undefined') {
-    window.__app_id = 'leaderreps-playground-dev';
-}
-if (typeof window.__initial_auth_token === 'undefined') {
-    // Leaves it empty so the app signs in anonymously if no token is available.
-    window.__initial_auth_token = ''; 
-}
+// --- START FIREBASE CONFIGURATION (LIVE KEYS) ---
+// Note: These variables are provided by the Canvas environment during development, 
+// but must be explicitly defined for Netlify/production deployment.
+const liveFirebaseConfig = {
+  apiKey: "AIzaSyD6eHDIDgC6NEIHLxMpQSe9l8X9MjKV6gk",
+  authDomain: "leaderreps-pd-plan.firebaseapp.com",
+  projectId: "leaderreps-pd-plan",
+  storageBucket: "leaderreps-pd-plan.firebasestorage.app",
+  messagingSenderId: "931832203209",
+  appId: "1:931832203209:web:a81dafbeb5b5da42b14a18",
+  measurementId: "G-1N7B7HQJZM"
+};
+
+// Global environment variables (required by the Firebase setup logic in App.jsx)
+const firebaseConfig = typeof __firebase_config !== 'undefined' 
+    ? JSON.parse(__firebase_config) 
+    : liveFirebaseConfig;
+
+const appId = typeof __app_id !== 'undefined' 
+    ? __app_id 
+    : 'leaderreps-pd-plan'; // Using projectId as safe default
+
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' 
+    ? __initial_auth_token 
+    : null; // Null if running locally
+
+window.__firebase_config = JSON.stringify(firebaseConfig);
+window.__app_id = appId;
+window.__initial_auth_token = initialAuthToken;
+// --- END FIREBASE CONFIGURATION ---
 
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
-)
+  </React.StrictMode>
+);
