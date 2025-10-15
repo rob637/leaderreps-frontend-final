@@ -5,5 +5,5 @@
   command = "npm run build"
 
 [build.environment]
-  # Pinning Node version to a specific, stable LTS release (v22) to satisfy Vite's dependency requirements (v22.12+).
-  NODE_VERSION = "22.12.2"
+  # Pinning Node version to the major LTS release (v20) to ensure Netlify finds a compatible version.
+  NODE_VERSION = "20"
