@@ -6,4 +6,4 @@
 
 [context.production.environment]
   # Explicitly enforce a stable Node version (v18 is highly stable with Vite)
-  NODE_VERSION = "18.x" # CHANGED TO 18.x for explicit stability
+  NODE_VERSION = "18.17.0" # Pinning to a specific, stable LTS version
