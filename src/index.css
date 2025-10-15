@@ -6,6 +6,8 @@ by PostCSS and Tailwind to generate the final utility classes.
 @tailwind components;
 @tailwind utilities;
 
+@import "tailwindcss";
+
 /* Set the default font for the entire application (Inter is used by Tailwind) */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
