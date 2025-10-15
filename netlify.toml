@@ -1,0 +1,9 @@
+[build]
+  # Set the publish directory where Vite outputs the final build files
+  publish = "dist"
+  # Set the command to run the production build
+  command = "npm run build"
+
+[context.production.environment]
+  # Explicitly enforce a stable Node version (v18 is highly stable with Vite)
+  NODE_VERSION = "18"
