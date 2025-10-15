@@ -1,0 +1,17 @@
+/*
+This file includes the Tailwind CSS directives that will be processed 
+by PostCSS and Tailwind to generate the final utility classes.
+*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Set the default font for the entire application (Inter is used by Tailwind) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #e5e7eb; /* A light gray background */
+}
