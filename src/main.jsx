@@ -16,19 +16,13 @@ const liveFirebaseConfig = {
   measurementId: "G-1N7B7HQJZM"
 };
 
-// Global environment variables (required by the Firebase setup logic in App.jsx)
-const firebaseConfig = typeof __firebase_config !== 'undefined' 
-    ? JSON.parse(__firebase_config) 
-    : liveFirebaseConfig;
+// --- GLOBAL VARIABLES (FOR COMPATIBILITY) ---
+// We define these using the live configuration so the App component can access them.
+const firebaseConfig = liveFirebaseConfig;
+const appId = liveFirebaseConfig.projectId; // Using projectId as safe default
+const initialAuthToken = null; 
 
-const appId = typeof __app_id !== 'undefined' 
-    ? __app_id 
-    : 'leaderreps-pd-plan'; // Using projectId as safe default
-
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' 
-    ? __initial_auth_token 
-    : null; // Null if running locally
-
+// We pass the live credentials as global variables for the App.jsx file to use during initialization.
 window.__firebase_config = JSON.stringify(firebaseConfig);
 window.__app_id = appId;
 window.__initial_auth_token = initialAuthToken;
@@ -37,6 +31,10 @@ window.__initial_auth_token = initialAuthToken;
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <App 
+      firebaseConfig={firebaseConfig} 
+      appId={appId} 
+      initialAuthToken={initialAuthToken} 
+    />
   </React.StrictMode>
 );
