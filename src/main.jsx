@@ -4,8 +4,7 @@ import App from './App.jsx';
 import './index.css';
 
 // --- START FIREBASE CONFIGURATION (LIVE KEYS) ---
-// Note: These variables are provided by the Canvas environment during development, 
-// but must be explicitly defined for Netlify/production deployment.
+// Define the live configuration object using the credentials you created.
 const liveFirebaseConfig = {
   apiKey: "AIzaSyD6eHDIDgC6NEIHLxMpQSe9l8X9MjKV6gk",
   authDomain: "leaderreps-pd-plan.firebaseapp.com",
@@ -16,13 +15,13 @@ const liveFirebaseConfig = {
   measurementId: "G-1N7B7HQJZM"
 };
 
-// --- GLOBAL VARIABLES (FOR COMPATIBILITY) ---
-// We define these using the live configuration so the App component can access them.
+// Define necessary context variables for the App component
 const firebaseConfig = liveFirebaseConfig;
-const appId = liveFirebaseConfig.projectId; // Using projectId as safe default
+const appId = liveFirebaseConfig.projectId; 
 const initialAuthToken = null; 
 
-// We pass the live credentials as global variables for the App.jsx file to use during initialization.
+// The App.jsx component will now receive these as props, guaranteeing initialization.
+// We keep the window assignments primarily for backward compatibility with the original Canvas environment.
 window.__firebase_config = JSON.stringify(firebaseConfig);
 window.__app_id = appId;
 window.__initial_auth_token = initialAuthToken;
