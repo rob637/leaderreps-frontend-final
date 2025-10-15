@@ -5,6 +5,5 @@
   command = "npm run build"
 
 [build.environment]
-  # Pinning Node version 20 to satisfy Vite's dependency requirements (v20.19+)
-  # This fixes the final environment compatibility error.
-  NODE_VERSION = "20"
+  # Pinning Node version to a specific, stable LTS release (v20) to satisfy Vite's dependency requirements.
+  NODE_VERSION = "20.12.2"
