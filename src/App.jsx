@@ -28,10 +28,10 @@ const SAMPLE_CONTENT_LIBRARY = [
 ];
 
 const REFLECTION_PROMPTS = {
-    1: "Session 1: Which of the 5 Rules for Feedback do you struggle with the most, and what's your plan to hit the 5:1 Magic Ratio?",
-    4: "Session 4: Reflect on vulnerability. Where have you struggled to lead with vulnerability, and what action will you commit to next?",
-    3: "Session 3: What's working well in your 1:1s, and what challenge are you facing with your direct's agenda?",
-    5: "Session 2: Reflect on your Leadership Identity Statement (LIS). What is your focus word, and how will it anchor your behavior this month?",
+    1: `Session 1: Which of the 5 Rules for Feedback do you struggle with the most, and what's your plan to hit the <strong>5:1 Magic Ratio</strong>?`,
+    4: `Session 4: Reflect on vulnerability. Where have you struggled to lead with vulnerability, and what action will you commit to next?`,
+    3: `Session 3: What's working well in your 1:1s, and what challenge are you facing with your direct's agenda?`,
+    5: `Session 2: Reflect on your Leadership Identity Statement (LIS). What is your <strong>focus word</strong>, and how will it anchor your behavior this month?`,
 };
 
 // --- HELPER FUNCTIONS ---
@@ -82,6 +82,9 @@ const generatePlanData = (assessment) => {
     if (currentTierIndex === -1) currentTierIndex = 0;
 
     let requiredTiers = priorityList;
+
+    // FIX IMPLEMENTED HERE: Create the selector outside the loop
+    const contentSelector = createUniqueItemSelector(requiredTiers);
     
     for (let month = 1; month <= 24; month++) {
         let currentTier = requiredTiers[currentTierIndex];
@@ -93,8 +96,7 @@ const generatePlanData = (assessment) => {
             currentTier = startTier;
         }
 
-        const contentSelector = createUniqueItemSelector(requiredTiers);
-        
+        // Use the persistent selector
         const requiredContentIds = [];
         for (let i = 0; i < 4; i++) {
             const itemId = contentSelector();
@@ -127,12 +129,19 @@ const APP_ID = "leaderreps-pd-plan"; // Fixed project ID
 
 /**
  * Renders the main title card.
+ * FIX: Using explicit class mapping instead of template strings to prevent Tailwind purging.
  */
 function TitleCard ({ title, description, icon: Icon, color = 'leader-blue' }) {
+    const palette = {
+        'leader-blue': { border: 'border-leader-blue', text: 'text-leader-blue' },
+        'leader-accent': { border: 'border-leader-accent', text: 'text-leader-accent' },
+    };
+    const { border, text } = palette[color] ?? palette['leader-blue'];
+    
     return (
-        <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 border-${color}`}>
+        <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 ${border}`}>
             <div className="flex items-center space-x-4">
-                <Icon className={`w-8 h-8 text-${color}`} />
+                <Icon className={`w-8 h-8 ${text}`} />
                 <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
             </div>
             <p className="mt-2 text-sm text-gray-500">{description}</p>
@@ -160,9 +169,7 @@ function ReflectionModal ({ isOpen, monthData, reflectionInput, setReflectionInp
                     **Workout Requirement:** Please complete this reflection based on the QuickStart workbook before marking the month complete.
                 </p>
 
-                <p className="text-base italic p-3 bg-leader-light rounded-lg border border-leader-accent/50 text-gray-800 mb-4">
-                    Prompt: **{prompt}**
-                </p>
+                <p className="text-base italic p-3 bg-leader-light rounded-lg border border-leader-accent/50 text-gray-800 mb-4" dangerouslySetInnerHTML={{ __html: `Prompt: <strong>${prompt}</strong>` }} />
 
                 <textarea
                     value={reflectionInput || ''}
@@ -286,10 +293,15 @@ function PlanGenerator ({ userId, setPlanData, setIsLoading, db }) {
 
         const plan = generatePlanData(assessment);
 
+        // --- DEFINITIVE FIX FOR DATA SHAPE ---
+        const payload = { assessment, plan, currentMonth: 1, lastUpdate: new Date().toISOString() };
+        // --- END DEFINITIVE FIX FOR DATA SHAPE ---
+
+
         try {
             const planRef = doc(db, `/artifacts/${APP_ID}/users/${userId}/leadership_plan`, 'roadmap');
-            await setDoc(planRef, { assessment, plan, currentMonth: 1, lastUpdate: new Date().toISOString() });
-            setPlanData(plan); // Update local state to trigger dashboard view
+            await setDoc(planRef, payload);
+            setPlanData(payload); // Update local state to trigger dashboard view with correct shape
             setMessage("Success! Your 24-month roadmap is ready.");
         } catch (e) {
             console.error("Error creating plan:", e);
@@ -404,8 +416,9 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
     const nextMonthPlan = useMemo(() => plan.find(p => p.month === currentMonth + 1), [plan, currentMonth]);
 
     useEffect(() => {
-        // NOTE: Handled the reflection check logic here if needed
-    }, [currentMonthPlan]);
+        // Sync currentMonth state with Firestore data
+        setCurrentMonth(userPlanData.currentMonth ?? 1);
+    }, [userPlanData.currentMonth]);
 
     // --- FIREBASE WRITE HANDLERS (Simplified) ---
     const updatePlanReflectionLocal = useCallback(async (month, reflectionText) => {
@@ -423,7 +436,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
             ...prev,
             plan: updatedPlan
         }));
-    }, [userId, userPlanData.plan, setUserPlanData]);
+    }, [userId, userPlanData.plan, setUserPlanData, db, APP_ID]);
 
 
     const markComplete = useCallback(async (month) => {
@@ -458,7 +471,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
             console.error("Error marking month complete:", e);
             setMessage(`Error: Could not update plan: ${e.message}`);
         }
-    }, [userId, plan, userPlanData, setUserPlanData]);
+    }, [userId, plan, userPlanData, setUserPlanData, db, APP_ID]);
 
     const handleSubmitReflection = useCallback(async () => {
         if (reflectionInput.length < 50 || !currentMonthPlan) return;
@@ -499,7 +512,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
             console.error("Error submitting scenario:", e);
             setMessage(`Error submitting scenario: ${e.message}`);
         }
-    }, [scenarioInput, userId, currentMonthPlan]);
+    }, [scenarioInput, userId, currentMonthPlan, db, APP_ID]);
 
 
     const handleFeedbackLink = () => {
@@ -521,6 +534,12 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
 
     const { tier, theme, requiredContentIds } = currentMonthPlan;
     const tierDetails = LEADERSHIP_TIERS.find(t => t.id === tier);
+    
+    // Fix: Correct lookup for next month's title
+    const nextTierDetails = nextMonthPlan
+        ? LEADERSHIP_TIERS.find(t => t.id === nextMonthPlan.tier)
+        : null;
+
     const completedItems = plan.filter(p => p.status === 'Completed').length;
     
     const contentList = useMemo(() => requiredContentIds.map(id => SAMPLE_CONTENT_LIBRARY.find(c => c.id === id)).filter(Boolean), [requiredContentIds]);
@@ -615,7 +634,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
                     </div>
                 </div>
 
-                {/* Next Month Preview (The Carrot) */}
+                /* Next Month Preview (The Carrot) */
                 <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-leader-blue">
                     <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
                         <TrendingUp className="w-5 h-5 text-leader-blue" />
@@ -624,7 +643,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
                     {nextMonthPlan ? (
                         <>
                             <p className="text-md font-semibold text-gray-700">{nextMonthPlan.theme}</p>
-                            <p className="text-sm text-gray-500 mt-1">Tier {nextMonthPlan.tier}: {tierDetails.title}</p>
+                            <p className="text-sm text-gray-500 mt-1">Tier {nextMonthPlan.tier}: {nextTierDetails?.title}</p>
                             <p className="mt-3 text-sm text-gray-600">Get ready for these core Reps:</p>
                             <ul className="list-disc list-inside mt-2 space-y-1 text-sm text-gray-600">
                                 {nextMonthPlan.requiredContentIds.slice(0, 3).map((id, index) => (
@@ -808,7 +827,7 @@ function App ({ firebaseConfig, appId, initialAuthToken }) {
         <div className="min-h-screen bg-gray-50 font-sans">
             {/* Pass dbService down to helper components */}
             {!userPlanData ? (
-                <PlanGenerator userId={userId} setPlanData={setUserPlanData} setIsLoading={setIsLoading} db={dbService} APP_ID={APP_ID} />
+                <PlanGenerator userId={userId} setPlanData={setUserPlanData} setIsLoading={isLoading} db={dbService} APP_ID={APP_ID} />
             ) : (
                 <TrackerDashboard userId={userId} userPlanData={userPlanData} setUserPlanData={setUserPlanData} db={dbService} APP_ID={APP_ID} />
             )}
