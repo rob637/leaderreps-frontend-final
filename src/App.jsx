@@ -84,7 +84,7 @@ const generatePlanData = (assessment) => {
     let requiredTiers = priorityList;
 
     // FIX IMPLEMENTED HERE: Create the selector outside the loop
-    const contentSelector = createUniqueItemSelector(requiredTiers);
+    let contentSelector = createUniqueItemSelector(requiredTiers);
     
     for (let month = 1; month <= 24; month++) {
         let currentTier = requiredTiers[currentTierIndex];
@@ -99,7 +99,13 @@ const generatePlanData = (assessment) => {
         // Use the persistent selector
         const requiredContentIds = [];
         for (let i = 0; i < 4; i++) {
-            const itemId = contentSelector();
+            let itemId = contentSelector();
+            if (!itemId) {
+                 // Content exhaustion fix: reset selector and allow repeats
+                contentSelector = createUniqueItemSelector(requiredTiers); 
+                itemId = contentSelector();
+            }
+
             if (itemId) requiredContentIds.push(itemId);
         }
 
@@ -387,7 +393,7 @@ function PlanGenerator ({ userId, setPlanData, setIsLoading, db }) {
                 <button
                     onClick={handleGenerate}
                     disabled={isGenerateDisabled}
-                    className={`px-12 py-3 text-lg font-bold text-white rounded-lg shadow-xl transition transform hover:scale-[1.02] ${isGenerateDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-leader-blue hover:bg-blue-800 shadow-leader-blue/50'}`}
+                    className={`px-12 py-3 text-lg font-bold text-white rounded-lg shadow-xl transition transform hover:scale-[1.02] ${isGenerateDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-leader-blue hover:bg-blue-800 shadow-lg ring-1 ring-leader-blue/20'}`}
                 >
                     Generate 24-Month Plan
                 </button>
