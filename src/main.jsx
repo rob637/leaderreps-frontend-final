@@ -4,7 +4,6 @@ import App from './App.jsx';
 import './index.css';
 
 // --- START FIREBASE CONFIGURATION (LIVE KEYS) ---
-// Define the live configuration object using the credentials you created.
 const liveFirebaseConfig = {
   apiKey: "AIzaSyD6eHDIDgC6NEIHLxMpQSe9l8X9MjKV6gk",
   authDomain: "leaderreps-pd-plan.firebaseapp.com",
@@ -24,7 +23,6 @@ const initialAuthToken = null;
 window.__firebase_config = JSON.stringify(firebaseConfig);
 window.__app_id = appId;
 window.__initial_auth_token = initialAuthToken;
-// --- END FIREBASE CONFIGURATION ---
 
 
 ReactDOM.createRoot(document.getElementById('root')).render(
