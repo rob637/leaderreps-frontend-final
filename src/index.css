@@ -1,13 +1,7 @@
-/* 1. INTER FONT MUST BE FIRST */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-
-/* 2. TAILWIND DIRECTIVES FOLLOW */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* 3. Global body style */
-body {
-    font-family: 'Inter', sans-serif;
-}
-    
+/* optional niceties */
+html, body, #root { height: 100%; }
+body { @apply bg-gray-50 text-gray-800; }
