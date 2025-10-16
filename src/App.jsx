@@ -14,15 +14,20 @@ const LEADERSHIP_TIERS = [
 ];
 
 const SAMPLE_CONTENT_LIBRARY = [
+    // TIER 1: Self-Awareness
     { id: 'c1', tier: 1, skill: "EQ", title: "Video: Mastering Your Focus Word", type: "Video", duration: 10, url: "#" },
     { id: 'c2', tier: 1, skill: "Self-Management", title: "Template: The Time-Audit Rep", type: "Template", duration: 20, url: "#" },
+    // TIER 2: Feedback & Coaching (QuickStart Core)
     { id: 'c3', tier: 2, skill: "Feedback", title: "Micro-Challenge: Practice the CLEAR Framework", type: "Micro-Challenge", duration: 15, url: "#" },
     { id: 'c4', tier: 2, skill: "Coaching", title: "Template: Effective 1:1 Agenda (Based on Direct's Agenda)", type: "Template", duration: 5, url: "#" },
     { id: 'c5', tier: 2, skill: "Feedback", title: "Reading: The 5:1 Magic Ratio Explained", type: "Reading", duration: 10, url: "#" },
+    // TIER 3: Execution & Accountability
     { id: 'c6', tier: 3, skill: "Delegation", title: "Case Study: Delegating vs. Dumping", type: "Case Study", duration: 25, url: "#" },
     { id: 'c7', tier: 3, skill: "Accountability", title: "Worksheet: Setting CLEAR KPIs", type: "Template", duration: 20, url: "#" },
+    // TIER 4: Communication & Vision
     { id: 'c8', tier: 4, skill: "Vision", title: "Micro-Challenge: Write Your Team's 6-Month Vision", type: "Micro-Challenge", duration: 45, url: "#" },
     { id: 'c9', tier: 4, skill: "Communication", title: "Video: Leading Change Management with Empathy", type: "Video", duration: 15, url: "#" },
+    // TIER 5: Talent & Culture (QuickStart Core)
     { id: 'c10', tier: 5, skill: "Trust", title: "Reading: Lencioni's 5 Dysfunctions of a Team Summary", type: "Reading", duration: 10, url: "#" },
     { id: 'c11', tier: 5, skill: "Culture", title: "Template: Talent Audit and Succession Planning", type: "Template", duration: 30, url: "#" },
 ];
@@ -34,20 +39,20 @@ const REFLECTION_PROMPTS = {
     5: "Session 2: Reflect on your Leadership Identity Statement (LIS). What is your focus word, and how will it anchor your behavior this month?",
 };
 
-// --- HELPER FUNCTIONS (Placeholders, kept simple) ---
+// --- HELPER FUNCTIONS ---
 const createUniqueItemSelector = (tierList) => { /* ... logic ... */ return () => 'c1'; }; // Simplified for integrity
 const generatePlanData = (assessment) => { /* ... logic ... */ return [{ id: 'm1', month: 1, tier: 2, theme: 'Example Theme', requiredContentIds: ['c3', 'c4', 'c5'] }]; }; 
 
 
 // --- GLOBAL SERVICE VARIABLES (Must be outside component) ---
+// These are placeholders for the services which will be defined inside App.
 let app, db, auth;
-const APP_ID = "leaderreps-pd-plan";
-
+const APP_ID = "leaderreps-pd-plan"; // Hardcoded project ID for Firestore pathing stability
 
 // --- COMPONENTS (Placeholders for brevity) ---
 const TitleCard = ({ title, description, icon: Icon, color = 'leader-blue' }) => ( /* ... component code ... */ <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 border-${color}`}><h2 className="text-2xl font-bold text-gray-800">{title}</h2></div>);
-const ReflectionModal = ({ isOpen, monthData, reflectionInput, setReflectionInput, onSubmit, onClose }) => { return isOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">Modal Content</div> : null; };
-const ScenarioModal = ({ isOpen, scenarioInput, setScenarioInput, onSubmit, onClose }) => { return isOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">Modal Content</div> : null; };
+const ReflectionModal = ({ isOpen, monthData, reflectionInput, setReflectionInput, onSubmit, onClose }) => { /* ... component code ... */ return isOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">Modal Content</div> : null; };
+const ScenarioModal = ({ isOpen, scenarioInput, setScenarioInput, onSubmit, onClose }) => { /* ... component code ... */ return isOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">Modal Content</div> : null; };
 const PlanGenerator = ({ userId, setPlanData, setIsLoading }) => { /* ... component code ... */ return <div className="p-8 max-w-5xl mx-auto"><TitleCard title="1:1 Plan Generator: Your LeaderReps Roadmap" description={`Welcome, ${userId}. Let's design your custom 24-month professional development plan based on the 4-session QuickStart course.`} icon={Zap} color="leader-accent" /></div>; };
 const TrackerDashboard = ({ userId, userPlanData, setUserPlanData }) => { /* ... component code ... */ return <div className="p-8 max-w-6xl mx-auto"><TitleCard title="Your LeaderReps Tracker Dashboard" description={`Welcome, ${userId}. Track your progress through the 24-Month Playground Roadmap.`} icon={Home} color="leader-blue" /></div>; };
 
