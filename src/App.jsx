@@ -232,8 +232,8 @@ function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
   return (
     <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 ${border}`}>
       <div className="flex items-start space-x-4">
-        {/* FIX: Reference the image using a string literal, assuming public path access. */}
-        <img src="image_853dcd.png" alt="LeaderReps Logo" className="w-32 h-auto" />
+        {/* FIX: Reference the image using a string literal with an absolute path. */}
+        <img src="/image_853dcd.png" alt="LeaderReps Logo" className="w-32 h-auto" />
       </div>
       <div className="mt-4">
           <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
@@ -600,10 +600,11 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
     prompt("Feedback Link (Copy and Share)", feedbackUrl);
   };
   
-  // Function to force the app back to the Plan Generator
+  // FIX: Function to force the app back to the Plan Generator without Firestore reloading immediately
   const handleStartOver = () => {
-      if (window.confirm("Are you sure you want to start a NEW plan? This will overwrite your existing roadmap upon completion, but keep your old data in Firestore.")) {
-          setUserPlanData(null);
+      if (window.confirm("Are you sure you want to start a NEW plan? This will clear your local view and allow you to create a new plan, overwriting the old one in Firestore when you complete the generator.")) {
+          // This sets userPlanData to null, immediately triggering the PlanGenerator view
+          setUserPlanData(null); 
       }
   };
 
@@ -795,7 +796,7 @@ export default function App() {
   const [dbService, setDbService] = useState(null);
   const [authService, setAuthService] = useState(null);
   const [authUid, setAuthUid] = useState(null);
-  const [userPlanData, setUserPlanData] = useState(null);
+  const [userPlanData, setUserPlanData] = useState(undefined); // FIX: Use 'undefined' initially
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialized, setInitialized] = useState(false);
@@ -824,7 +825,6 @@ export default function App() {
         if (user) {
           console.log('Anon user ready:', user.uid);
           setAuthUid(user.uid);
-          setIsLoading(false);
         } else {
           signInAnonymously(auth).catch((e) => {
             console.error('Anon sign-in failed:', e);
@@ -849,16 +849,16 @@ export default function App() {
     const planRef = doc(dbService, 'artifacts', APP_ID, 'users', authUid, 'leadership_plan', 'roadmap');
 
     const unsubscribe = onSnapshot(planRef, (docSnap) => {
-      // Logic: Only load from Firestore if userPlanData is null, allowing the "Start Over" button to work locally
-      // Once the "Start Over" button is pressed, userPlanData becomes null, and we check Firestore again.
-      // If the doc exists, we load it, otherwise we leave it null to show the PlanGenerator.
-      if (userPlanData === null) { 
+      // FIX: Load initial data, but avoid overwriting local state change (Start Over)
+      // If userPlanData is 'undefined', it means we haven't checked the database yet.
+      if (userPlanData === undefined) { 
         if (docSnap.exists()) {
             setUserPlanData(docSnap.data());
         } else {
-            setUserPlanData(null); // Keep it null to show PlanGenerator
+            setUserPlanData(null); // No plan exists, show generator
         }
       }
+      setIsLoading(false);
     }, (e) => {
       console.error("Firestore Snapshot Error:", e);
       if (e.code === 'permission-denied') {
@@ -881,7 +881,8 @@ export default function App() {
     );
   }
 
-  if (isLoading || !authUid) {
+  // Show loading screen while waiting for auth UID and initial plan check
+  if (isLoading || !authUid || userPlanData === undefined) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50">
         <div className="p-6 text-center text-gray-700">
