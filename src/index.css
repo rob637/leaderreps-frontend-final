@@ -1,19 +1,32 @@
-/*
-This file includes the Tailwind CSS directives that will be processed 
-by PostCSS and Tailwind to generate the final utility classes.
-*/
+/* 1. INTER FONT MUST BE FIRST */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+/* 2. TAILWIND DIRECTIVES FOLLOW */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import "tailwindcss";
-
-/* Set the default font for the entire application (Inter is used by Tailwind) */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-
+/* 3. Global body style */
 body {
     font-family: 'Inter', sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #e5e7eb; /* A light gray background */
 }
+```
+
+### Next Steps: Final Deployment Push
+
+This push will address the CSS order error and force the security scan to recognize the secure configurations.
+
+1.  **Stage All Changes (The CSS order fix):**
+    ```bash
+    git add .
+    ```
+
+2.  **Commit the Code:**
+    ```bash
+    git commit -m "Final FIX: Corrected CSS @import order to resolve build failure."
+    ```
+
+3.  **Push the Change:**
+    ```bash
+    git push
+    

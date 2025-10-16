@@ -3,10 +3,9 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 
-// --- START FIREBASE CONFIGURATION (SECURE ACCESS) ---
-// Access environment variables securely injected by Netlify/Vite
+// --- START FIREBASE CONFIGURATION (LIVE KEYS) ---
+// Note: Netlify injects environment variables via VITE_*.
 const liveFirebaseConfig = {
-  // We check for __firebase_config first (Canvas environment) and then fall back to VITE_ keys (Netlify environment)
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
