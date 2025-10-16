@@ -1,7 +1,10 @@
+/* src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* optional niceties */
-html, body, #root { height: 100%; }
-body { @apply bg-gray-50 text-gray-800; }
+/* Optional global base styles (valid use of @apply) */
+@layer base {
+  html, body, #root { height: 100%; }
+  body { @apply bg-gray-50 text-gray-800; }
+}
