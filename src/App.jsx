@@ -403,7 +403,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      {/* Logo placed above the main TitleCard */}
+      {/* Logo placed above the main TitleCard. Uses absolute path now confirmed to be /image_853dcd.png from the /public folder. */}
       <img src="/image_853dcd.png" alt="LeaderReps Logo" className="w-48 h-auto mb-4" />
 
       <TitleCard
