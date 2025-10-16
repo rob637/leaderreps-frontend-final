@@ -170,7 +170,7 @@ function ReflectionModal ({ isOpen, monthData, reflectionInput, setReflectionInp
                     <MessageSquare className="w-5 h-5 mr-2 text-leader-accent" />
                     Monthly Reflection: Month {monthData.month}
                 </h3>
-                <p className="text-sm text-gray-700 mb-4 font-semibold">
+                <p className="text-sm font-semibold text-gray-700 mb-4">
                     <strong>Workout Requirement:</strong> Please complete this reflection based on the QuickStart workbook before marking the month complete.
                 </p>
 
