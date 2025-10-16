@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { initializeApp, getApps } from 'firebase/app'; 
+import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot, updateDoc, writeBatch } from 'firebase/firestore';
 import { Home, CheckCircle, Target, Users, TrendingUp, Zap, Clock, Send, Eye, MessageSquare, Briefcase } from 'lucide-react';
 
-// --- DATA STRUCTURES ---
-
+// --- DATA STRUCTURES (Your Project Constants) ---
 // 5 Tiers of Leadership (from New Manager to Seasoned Leader)
 const LEADERSHIP_TIERS = [
     { id: 1, title: "Self-Awareness & Management", icon: Eye, description: "Mastering your own strengths, motivations, and resilience (Tier 1)." },
@@ -43,13 +42,18 @@ const REFLECTION_PROMPTS = {
     5: "Session 2: Reflect on your Leadership Identity Statement (LIS). What is your focus word, and how will it anchor your behavior this month?",
 };
 
-// --- HELPER FUNCTIONS (generatePlanData and createUniqueItemSelector are correct and omitted for brevity) ---
+// --- HELPER FUNCTIONS ---
+
+/**
+ * Returns a function to add a unique item from a source array.
+ */
 const createUniqueItemSelector = (tierList) => {
     const selectedIds = new Set();
     const allContentIds = SAMPLE_CONTENT_LIBRARY.map(c => c.id);
 
     const prioritizedContent = SAMPLE_CONTENT_LIBRARY.filter(c => tierList.includes(c.tier));
     const secondaryContent = SAMPLE_CONTENT_LIBRARY.filter(c => !tierList.includes(c.tier));
+
     const pool = [...prioritizedContent, ...secondaryContent];
 
     const addUniqueItem = () => {
@@ -70,6 +74,10 @@ const createUniqueItemSelector = (tierList) => {
     return addUniqueItem;
 };
 
+
+/**
+ * Generates the 24-month personalized plan based on user assessment.
+ */
 const generatePlanData = (assessment) => {
     const { managerStatus, goalPriorities, tierSelfRating } = assessment;
 
@@ -89,12 +97,13 @@ const generatePlanData = (assessment) => {
     
     const plan = [];
     let currentTierIndex = priorityList.findIndex(tier => tier === startTier);
-    if (currentTierIndex === -1) currentTierIndex = 0; 
+    if (currentTierIndex === -1) currentTierIndex = 0;
 
-    let currentTier = startTier;
     let requiredTiers = priorityList;
     
     for (let month = 1; month <= 24; month++) {
+        let currentTier = requiredTiers[currentTierIndex];
+
         if ((month - 1) % 4 === 0 && month > 1) {
             currentTierIndex = (currentTierIndex + 1) % requiredTiers.length;
             currentTier = requiredTiers[currentTierIndex];
@@ -111,7 +120,7 @@ const generatePlanData = (assessment) => {
         }
 
         const tierData = LEADERSHIP_TIERS.find(t => t.id === currentTier);
-        const themeIndex = (month - 1) % 4; 
+        const themeIndex = (month - 1) % 4;
 
         plan.push({
             id: `m${month}`,
@@ -123,32 +132,42 @@ const generatePlanData = (assessment) => {
             reflectionText: null,
         });
     }
+
     return plan;
 };
 
 
-// --- COMPONENTS (PlanGenerator, TrackerDashboard, Modals, TitleCard are correct and omitted for brevity) ---
-// (Note: The core logic for these components relies on 'db', 'auth', and 'appId' being available from the main App component)
+// --- COMPONENTS (Removed for Brevity in Final Debug) ---
 
-// --- Define App as Initialization Container ---
-const App = (props) => {
-    const { firebaseConfig, appId, initialAuthToken } = props;
+const TitleCard = ({ title, description, icon: Icon, color = 'leader-blue' }) => ( /* ... component code ... */ <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 border-${color}`}>
+        <div className="flex items-center space-x-4">
+            <Icon className={`w-8 h-8 text-${color}`} />
+            <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+        </div>
+        <p className="mt-2 text-sm text-gray-500">{description}</p>
+    </div>
+);
 
-    // Firebase instances stored in state
-    const [db, setDb] = useState(null);
-    const [auth, setAuth] = useState(null);
+const ReflectionModal = ({ isOpen, monthData, reflectionInput, setReflectionInput, onSubmit, onClose }) => { /* ... component code ... */ return isOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4"><div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 animate-in fade-in zoom-in-50"></div></div> : null; };
+const ScenarioModal = ({ isOpen, scenarioInput, setScenarioInput, onSubmit, onClose }) => { /* ... component code ... */ return isOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4"><div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 animate-in fade-in zoom-in-50"></div></div> : null; };
+const PlanGenerator = ({ userId, setPlanData, setIsLoading }) => { /* ... component code ... */ return <div className="p-8 max-w-5xl mx-auto"><TitleCard title="1:1 Plan Generator: Your LeaderReps Roadmap" description={`Welcome, ${userId}. Let's design your custom 24-month professional development plan based on the 4-session QuickStart course.`} icon={Zap} color="leader-accent" /></div>; };
+const TrackerDashboard = ({ userId, userPlanData, setUserPlanData }) => { /* ... component code ... */ return <div className="p-8 max-w-6xl mx-auto"><TitleCard title="Your LeaderReps Tracker Dashboard" description={`Welcome, ${userId}. Track your progress through the 24-Month Playground Roadmap.`} icon={Home} color="leader-blue" /></div>; };
 
+
+// --- GLOBAL VARIABLES (Must be defined outside component) ---
+// These are placeholders for the services which will be defined inside App.
+let app, db, auth;
+const appId = "leaderreps-pd-plan"; // Fixed based on project ID
+
+// --- MAIN APPLICATION COMPONENT (Now receives config as props) ---
+const App = ({ firebaseConfig, initialAuthToken }) => {
     const [userId, setUserId] = useState(null);
     const [userPlanData, setUserPlanData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    
-    // Path constant relies on the appId prop
-    const APP_ID = appId; 
 
-    // 1. Initialization and Authentication (using useCallback for stability)
-    const initializeFirebase = useCallback(() => {
-        // 1. CRITICAL CHECK: Ensure configuration is ready before proceeding
+    // Final, robust Firebase Initialization
+    useEffect(() => {
         if (!firebaseConfig || !firebaseConfig.projectId) {
             setError("Firebase is not configured. Ensure credentials are passed correctly.");
             setIsLoading(false);
@@ -156,128 +175,105 @@ const App = (props) => {
         }
 
         try {
-            // Check if app is already initialized (to prevent errors in React Dev Mode)
-            const appInstance = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
-            
-            const dbInstance = getFirestore(appInstance);
-            setDb(dbInstance);
-
-            const authInstance = getAuth(appInstance);
-            setAuth(authInstance);
-
-            // Authentication Logic
-            const initializeAuth = async () => {
-                try {
-                    // Use prop for token check
-                    if (initialAuthToken && initialAuthToken.length > 0) {
-                        await signInWithCustomToken(authInstance, initialAuthToken);
-                    } else {
-                        await signInAnonymously(authInstance);
-                    }
-                } catch (e) {
-                    console.error("Auth Error:", e);
-                    setError(`Authentication Failed: ${e.message}`);
-                }
-            };
-
-            const unsubscribeAuth = onAuthStateChanged(authInstance, (user) => {
-                if (user) {
-                    setUserId(user.uid);
-                } else {
-                    setUserId(null);
-                    setIsLoading(false);
-                }
-            });
-
-            initializeAuth();
-            return () => unsubscribeAuth();
-
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
         } catch (e) {
-            console.error("Firebase Initialization Error:", e);
-            setError(`Firebase Initialization Error: ${e.message}`);
-            setIsLoading(false);
+            // Check if app already initialized (common in React Strict Mode)
+            if (e.code !== 'app/duplicate-app') {
+                console.error("Critical Firebase Init Error:", e);
+                setError("Critical Initialization Error. Check console.");
+                setIsLoading(false);
+                return;
+            }
         }
-    }, [firebaseConfig, initialAuthToken]); // Dependencies are the incoming props
+        
+        const currentAuth = getAuth(app);
 
-    useEffect(() => {
-        // Call the initialization function only once on mount
-        const cleanup = initializeFirebase();
-        return () => {
-            if (cleanup) cleanup();
+        const initializeAuth = async () => {
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(currentAuth, initialAuthToken);
+                } else {
+                    await signInAnonymously(currentAuth);
+                }
+            } catch (e) {
+                console.error("Auth Error:", e);
+                setError(`Authentication Failed: ${e.message}`);
+            }
         };
-    }, [initializeFirebase]);
 
+        const unsubscribe = onAuthStateChanged(currentAuth, (user) => {
+            if (user) {
+                setUserId(user.uid);
+            } else {
+                setUserId(null);
+            }
+            setIsLoading(false);
+        });
 
-    // 2. Data Listener (Plan Retrieval)
+        initializeAuth();
+        return () => unsubscribe();
+    }, [firebaseConfig, initialAuthToken]); // Re-run if config changes
+
+    // Data Listener (Plan Retrieval)
     useEffect(() => {
-        // Only run if userId and Firestore instance (db) are available
-        if (!userId || !db || !auth) return;
+        if (!userId || !db) return;
 
-        const roadmapRef = doc(db, `/artifacts/${APP_ID}/users/${userId}/leadership_plan`, 'roadmap');
+        // Plan reference must be defined here, inside useEffect, to ensure db and userId are initialized
+        const planRef = doc(db, `/artifacts/${appId}/users/${userId}/leadership_plan`, 'roadmap');
 
-        const unsubscribe = onSnapshot(roadmapRef, (docSnap) => {
+        const unsubscribe = onSnapshot(planRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 setUserPlanData(data);
             } else {
-                setUserPlanData(null); // Plan doesn't exist, show generator
+                setUserPlanData(null);
             }
-            setIsLoading(false);
         }, (e) => {
-            console.error("Firestore Snapshot Error:", e);
-            setError(`Failed to load plan: ${e.message}`);
-            setIsLoading(false);
+            // This is the permissions error we saw earlier
+            if (e.code === 'permission-denied') {
+                setError("Application Error: Failed to load plan: Missing or insufficient permissions. Ensure your Firestore Security Rules are correct.");
+            } else {
+                console.error("Firestore Snapshot Error:", e);
+                setError(`Failed to load plan: ${e.message}`);
+            }
         });
 
         return () => unsubscribe();
-    }, [userId, db, auth, APP_ID]); // Dependencies are the state variables
+    }, [userId]);
 
-    // --- RENDER LOGIC ---
 
     if (error) {
         return (
             <div className="p-8 text-center text-red-700 bg-red-100 rounded-lg max-w-lg mx-auto mt-12">
                 <h1 className="text-xl font-bold">Application Error</h1>
                 <p className="mt-2 text-sm">{error}</p>
-                <p className="mt-2 text-xs">Ensure your Firebase Config keys are correct in main.jsx.</p>
             </div>
         );
     }
 
-    // Pass db and APP_ID to the child components for Firestore operations
-    const childProps = { userId, setUserPlanData, setIsLoading, db, app_id: APP_ID };
-
-    if (isLoading || !db || !auth || !userId) {
+    if (isLoading || !userId) {
         return (
             <div className="flex justify-center items-center h-screen bg-gray-50">
                 <div className="p-6 text-center text-gray-700">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-leader-accent mx-auto"></div>
-                    <p className="mt-4 font-semibold">Authenticating and connecting to LeaderReps database...</p>
-                    {/* Display error if config is null while loading */}
-                    {(!firebaseConfig || !firebaseConfig.projectId) && (
-                        <p className="mt-4 text-xs text-red-500">Awaiting Firebase Configuration...</p>
-                    )}
+                    <p className="mt-4 font-semibold">Authenticating and loading LeaderReps data...</p>
                 </div>
             </div>
         );
     }
-    
-    // --- FINAL RENDER ---
+
     return (
         <div className="min-h-screen bg-gray-50 font-sans">
             {!userPlanData ? (
-                <PlanGenerator {...childProps} />
+                <PlanGenerator userId={userId} setPlanData={setUserPlanData} setIsLoading={setIsLoading} />
             ) : (
-                <TrackerDashboard {...childProps} userPlanData={userPlanData} />
+                <TrackerDashboard userId={userId} userPlanData={userPlanData} setUserPlanData={setUserPlanData} />
             )}
             <p className="fixed bottom-2 left-2 text-xs text-gray-400">User ID: {userId}</p>
         </div>
     );
 };
-
-// Pass child component props (omitted for brevity)
-const PlanGenerator = ({ userId, setPlanData, setIsLoading, db, app_id }) => { /* ... */ };
-const TrackerDashboard = ({ userId, userPlanData, setUserPlanData, db, app_id }) => { /* ... */ };
-
 
 export default App;
