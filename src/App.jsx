@@ -428,7 +428,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
     // --- FIREBASE WRITE HANDLERS (Simplified) ---
     const updatePlanReflectionLocal = useCallback(async (month, reflectionText) => {
         const planRef = doc(db, 'artifacts', APP_ID, 'users', userId, 'leadership_plan', 'roadmap');
-        const updatedPlan = userPlanData.plan.map(p =>
+        const updatedPlan = (userPlanData.plan ?? []).map(p =>
             p.month === month ? { ...p, reflectionText: reflectionText } : p
         );
 
@@ -476,7 +476,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
             console.error("Error marking month complete:", e);
             setMessage(`Error: Could not update plan: ${e.message}`);
         }
-    }, [db, APP_ID, userId, plan, userPlanData, setUserPlanData]);
+    }, [db, APP_ID, userId, plan]);
 
     const handleSubmitReflection = useCallback(async () => {
         if (reflectionInput.length < 50 || !currentMonthPlan) return;
@@ -522,7 +522,8 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
 
     const handleFeedbackLink = () => {
         const uniqueId = userId;
-        const tierTitle = LEADERSHIP_TIERS.find(t => t.id === currentMonthPlan.tier)?.title || "Leadership";
+        const tierDetails = LEADERSHIP_TIERS.find(t => t.id === currentMonthPlan.tier);
+        const tierTitle = tierDetails?.title || "Leadership";
         const feedbackUrl = `https://leaderrepspd.netlify.app/feedback_form.html?user=${uniqueId}&tier=${currentMonthPlan.tier}`;
         
         prompt("Feedback Link (Copy and Share)", feedbackUrl);
@@ -684,7 +685,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
 }
 
 // --- MAIN APPLICATION COMPONENT (Correctly Defined) ---
-function App ({ firebaseConfig, appId, initialAuthToken }) {
+function App ({ firebaseConfig, initialAuthToken }) {
     // State variables for initialized Firebase services
     const [dbService, setDbService] = useState(null);
     const [authService, setAuthService] = useState(null);
@@ -805,10 +806,18 @@ function App ({ firebaseConfig, appId, initialAuthToken }) {
     }
 
     if (isLoading || !userId) {
-        const handleManualLoad = () => {
-            // DEBUG OVERRIDE: Set a temporary user ID to force the Plan Generator to load.
-            setUserId('DEBUG_USER_ID_OVERRIDE');
-            setIsLoading(false);
+        const handleManualLoad = async () => {
+            // DEBUG OVERRIDE: Perform a real anonymous sign-in to get a valid UID.
+            if (authService) {
+                signInAnonymously(authService).catch(e => {
+                    console.error('Anon sign-in failed during debug override:', e);
+                    setError(`Auth failed: ${e.message}`);
+                    setIsLoading(false);
+                });
+            } else {
+                setError('Auth service not initialized. Cannot perform debug sign-in.');
+                setIsLoading(false);
+            }
         };
 
         return (
@@ -832,9 +841,9 @@ function App ({ firebaseConfig, appId, initialAuthToken }) {
         <div className="min-h-screen bg-gray-50 font-sans">
             {/* Pass dbService down to helper components */}
             {!userPlanData ? (
-                <PlanGenerator userId={userId} setPlanData={setUserPlanData} setIsLoading={setIsLoading} db={dbService} APP_ID={APP_ID} />
+                <PlanGenerator userId={userId} setPlanData={setUserPlanData} setIsLoading={setIsLoading} db={dbService} />
             ) : (
-                <TrackerDashboard userId={userId} userPlanData={userPlanData} setUserPlanData={setUserPlanData} db={dbService} APP_ID={APP_ID} />
+                <TrackerDashboard userId={userId} userPlanData={userPlanData} setUserPlanData={setUserPlanData} db={dbService} />
             )}
             <p className="fixed bottom-2 left-2 text-xs text-gray-400">User ID: {userId}</p>
         </div>
