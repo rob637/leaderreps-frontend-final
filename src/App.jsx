@@ -129,7 +129,6 @@ const APP_ID = "leaderreps-pd-plan"; // Fixed project ID
 
 /**
  * Renders the main title card.
- * FIX: Using explicit class mapping instead of template strings to prevent Tailwind purging.
  */
 function TitleCard ({ title, description, icon: Icon, color = 'leader-blue' }) {
     const palette = {
@@ -166,10 +165,10 @@ function ReflectionModal ({ isOpen, monthData, reflectionInput, setReflectionInp
                     Monthly Reflection: Month {monthData.month}
                 </h3>
                 <p className="text-sm text-gray-700 mb-4 font-semibold">
-                    **Workout Requirement:** Please complete this reflection based on the QuickStart workbook before marking the month complete.
+                    <strong>Workout Requirement:</strong> Please complete this reflection based on the QuickStart workbook before marking the month complete.
                 </p>
 
-                <p className="text-base italic p-3 bg-leader-light rounded-lg border border-leader-accent/50 text-gray-800 mb-4" dangerouslySetInnerHTML={{ __html: `Prompt: <strong>${prompt}</strong>` }} />
+                <p className="text-base italic p-3 bg-leader-light rounded-lg border border-leader-accent/50 text-gray-800 mb-4" dangerouslySetInnerHTML={{ __html: prompt }} />
 
                 <textarea
                     value={reflectionInput || ''}
@@ -299,7 +298,7 @@ function PlanGenerator ({ userId, setPlanData, setIsLoading, db }) {
 
 
         try {
-            const planRef = doc(db, `/artifacts/${APP_ID}/users/${userId}/leadership_plan`, 'roadmap');
+            const planRef = doc(db, 'artifacts', APP_ID, 'users', userId, 'leadership_plan', 'roadmap');
             await setDoc(planRef, payload);
             setPlanData(payload); // Update local state to trigger dashboard view with correct shape
             setMessage("Success! Your 24-month roadmap is ready.");
@@ -422,7 +421,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
 
     // --- FIREBASE WRITE HANDLERS (Simplified) ---
     const updatePlanReflectionLocal = useCallback(async (month, reflectionText) => {
-        const planRef = doc(db, `/artifacts/${APP_ID}/users/${userId}/leadership_plan`, 'roadmap');
+        const planRef = doc(db, 'artifacts', APP_ID, 'users', userId, 'leadership_plan', 'roadmap');
         const updatedPlan = userPlanData.plan.map(p =>
             p.month === month ? { ...p, reflectionText: reflectionText } : p
         );
@@ -439,18 +438,18 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
     }, [userId, userPlanData.plan, setUserPlanData, db, APP_ID]);
 
 
-    const markComplete = useCallback(async (month) => {
+    const markComplete = useCallback(async (month, { skipReflectionCheck = false } = {}) => {
         if (!db) { setMessage("Firestore not initialized."); return; }
 
         const monthData = plan.find(p => p.month === month);
 
-        if (monthData && monthData.reflectionText === null) {
+        if (!skipReflectionCheck && monthData && monthData.reflectionText === null) {
             setMessage("Please submit your Monthly Reflection before marking this month complete.");
             setIsReflectionModalOpen(true);
             return;
         }
 
-        const planRef = doc(db, `/artifacts/${APP_ID}/users/${userId}/leadership_plan`, 'roadmap');
+        const planRef = doc(db, 'artifacts', APP_ID, 'users', userId, 'leadership_plan', 'roadmap');
         const batch = writeBatch(db);
 
         const updatedPlan = plan.map(p =>
@@ -480,7 +479,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
         setMessage("Saving reflection...");
         try {
             await updatePlanReflectionLocal(currentMonthPlan.month, reflectionInput);
-            await markComplete(currentMonthPlan.month);
+            await markComplete(currentMonthPlan.month, { skipReflectionCheck: true });
             setReflectionInput('');
         } catch (error) {
             console.error("Error submitting reflection:", error);
@@ -495,7 +494,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
         setMessage("Submitting scenario to your trainer...");
 
         try {
-            const planRef = doc(db, `/artifacts/${APP_ID}/users/${userId}/leadership_plan`, 'roadmap');
+            const planRef = doc(db, 'artifacts', APP_ID, 'users', userId, 'leadership_plan', 'roadmap');
             
             await updateDoc(planRef, {
                 latestScenario: {
@@ -765,7 +764,7 @@ function App ({ firebaseConfig, appId, initialAuthToken }) {
         if (!userId || !dbService || !isInitialized) return;
 
         // Plan reference must be defined here, inside useEffect, to ensure db and userId are initialized
-        const planRef = doc(dbService, `/artifacts/${APP_ID}/users/${userId}/leadership_plan`, 'roadmap');
+        const planRef = doc(dbService, 'artifacts', APP_ID, 'users', userId, 'leadership_plan', 'roadmap');
 
         const unsubscribe = onSnapshot(planRef, (docSnap) => {
             if (docSnap.exists()) {
@@ -827,7 +826,7 @@ function App ({ firebaseConfig, appId, initialAuthToken }) {
         <div className="min-h-screen bg-gray-50 font-sans">
             {/* Pass dbService down to helper components */}
             {!userPlanData ? (
-                <PlanGenerator userId={userId} setPlanData={setUserPlanData} setIsLoading={isLoading} db={dbService} APP_ID={APP_ID} />
+                <PlanGenerator userId={userId} setPlanData={setUserPlanData} setIsLoading={setIsLoading} db={dbService} APP_ID={APP_ID} />
             ) : (
                 <TrackerDashboard userId={userId} userPlanData={userPlanData} setUserPlanData={setUserPlanData} db={dbService} APP_ID={APP_ID} />
             )}
