@@ -9,9 +9,10 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, doc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
-        // --- LIVE FIREBASE CONFIGURATION (ACCESSING ENVIRONMENT VARIABLES) ---
-        // This configuration uses the secure environment variables set in Netlify.
-        // NOTE: These hardcoded keys are only a temporary fix for the HTML file to connect.
+        // --- LIVE FIREBASE CONFIGURATION (Using Hardcoded Keys for Public HTML File) ---
+        // NOTE: For a static HTML file, using process.env or import.meta.env does not work.
+        // The keys must be hardcoded here, which is why Netlify fails the secrets scan.
+        // We accept this risk for this specific public HTML file to function correctly.
         const firebaseConfig = {
             apiKey: "AIzaSyD6eHDIDgC6NEIHLxMpQSe9l8X9MjKV6gk",
             authDomain: "leaderreps-pd-plan.firebaseapp.com",
@@ -128,7 +129,7 @@
                     container.innerHTML = `
                         <div class="text-center p-8 bg-green-100 rounded-xl shadow-2xl">
                             <h2 class="text-3xl font-bold text-green-700 mb-3">Feedback Submitted!</h2>
-                            <p class="text-gray-700">Thank you for taking the time to complete this leadership rep.</p>
+                            <p class="text-gray-700">Thank upou for taking the time to complete this leadership rep.</p>
                             <p class="mt-4 text-sm text-gray-500">Your anonymous insights will help the participant grow in **${tierData.title}**.</p>
                         </div>
                     `;
