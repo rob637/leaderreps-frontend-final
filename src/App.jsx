@@ -293,7 +293,7 @@ function PlanGenerator ({ userId, setPlanData, setIsLoading, db }) {
         const plan = generatePlanData(assessment);
 
         // --- DEFINITIVE FIX FOR DATA SHAPE ---
-        const payload = { assessment, plan, currentMonth: 1, lastUpdate: new Date().toISOString() };
+        const payload = { ownerUid: userId, assessment, plan, currentMonth: 1, lastUpdate: new Date().toISOString() };
         // --- END DEFINITIVE FIX FOR DATA SHAPE ---
 
 
@@ -435,7 +435,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
             ...prev,
             plan: updatedPlan
         }));
-    }, [userId, userPlanData.plan, setUserPlanData, db, APP_ID]);
+    }, [db, APP_ID, userId, userPlanData.plan, setUserPlanData]);
 
 
     const markComplete = useCallback(async (month, { skipReflectionCheck = false } = {}) => {
@@ -470,7 +470,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
             console.error("Error marking month complete:", e);
             setMessage(`Error: Could not update plan: ${e.message}`);
         }
-    }, [userId, plan, userPlanData, setUserPlanData, db, APP_ID]);
+    }, [db, APP_ID, userId, plan, userPlanData, setUserPlanData]);
 
     const handleSubmitReflection = useCallback(async () => {
         if (reflectionInput.length < 50 || !currentMonthPlan) return;
@@ -633,7 +633,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
                     </div>
                 </div>
 
-                /* Next Month Preview (The Carrot) */
+                {/* Next Month Preview (The Carrot) */}
                 <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-leader-blue">
                     <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
                         <TrendingUp className="w-5 h-5 text-leader-blue" />
