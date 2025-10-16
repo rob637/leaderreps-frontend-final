@@ -10,23 +10,4 @@
 body {
     font-family: 'Inter', sans-serif;
 }
-```
-
-### Next Steps: Final Deployment Push
-
-This push will address the CSS order error and force the security scan to recognize the secure configurations.
-
-1.  **Stage All Changes (The CSS order fix):**
-    ```bash
-    git add .
-    ```
-
-2.  **Commit the Code:**
-    ```bash
-    git commit -m "Final FIX: Corrected CSS @import order to resolve build failure."
-    ```
-
-3.  **Push the Change:**
-    ```bash
-    git push
     
