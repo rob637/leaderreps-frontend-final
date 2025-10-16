@@ -381,7 +381,7 @@ function PlanGenerator ({ userId, setPlanData, setIsLoading, db }) {
                                 max="10"
                                 value={ratings[tier.id] || 5}
                                 onChange={(e) => setRatings({ ...ratings, [tier.id]: parseInt(e.target.value) })}
-                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg accent-leader-accent"
+                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-leader-accent"
                             />
                         </div>
                     ))}
@@ -470,8 +470,8 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
 
         try {
             await batch.commit();
-            setMessage(`Month ${month} completed! Advancing to Month ${month + 1} reps.`);
-            setCurrentMonth(month + 1);
+            setMessage(`Month ${month} completed! Advancing to Month ${Math.min(month + 1, 24)} reps.`);
+            setCurrentMonth(Math.min(month + 1, 24));
         } catch (e) {
             console.error("Error marking month complete:", e);
             setMessage(`Error: Could not update plan: ${e.message}`);
@@ -522,8 +522,6 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
 
     const handleFeedbackLink = () => {
         const uniqueId = userId;
-        const tierDetails = LEADERSHIP_TIERS.find(t => t.id === currentMonthPlan.tier);
-        const tierTitle = tierDetails?.title || "Leadership";
         const feedbackUrl = `https://leaderrepspd.netlify.app/feedback_form.html?user=${uniqueId}&tier=${currentMonthPlan.tier}`;
         
         prompt("Feedback Link (Copy and Share)", feedbackUrl);
