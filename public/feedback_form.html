@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeaderReps Feedback Form</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        // --- LIVE FIREBASE CONFIGURATION ---
+        // This configuration uses the live keys from your main application (leaderreps-pd-plan)
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6eHDIDgC6NEIHLxMpQSe9l8X9MjKV6gk",
+            authDomain: "leaderreps-pd-plan.firebaseapp.com",
+            projectId: "leaderreps-pd-plan",
+            storageBucket: "leaderreps-pd-plan.firebasestorage.app",
+            messagingSenderId: "931832203209",
+            appId: "1:931832203209:web:a81dafbeb5b5da42b14a18",
+            measurementId: "G-1N7B7HQJZM"
+        };
+        
+        const APP_ID = 'leaderreps-pd-plan'; // Using projectId as a consistent path variable
+
+        // 5 Tiers of Leadership (for dynamic question loading)
+        const TIER_QUESTIONS = {
+            1: { title: "Self-Awareness & Management", questions: [
+                "The participant demonstrates self-control and manages stress effectively.",
+                "They are receptive to feedback and seek to understand their blind spots."
+            ]},
+            2: { title: "People & Coaching", questions: [
+                "The participant delivers timely, specific, and actionable feedback.",
+                "They actively coach team members toward solutions rather than providing answers."
+            ]},
+            3: { title: "Execution & Accountability", questions: [
+                "The participant delegates tasks with clear expectations and sufficient autonomy.",
+                "They hold both themselves and their team accountable for established metrics."
+            ]},
+            4: { title: "Communication & Vision", questions: [
+                "The participant clearly communicates the team's mission and strategic 'why'.",
+                "Their communication style inspires trust and clarity during change."
+            ]},
+            5: { title: "Talent & Culture", questions: [
+                "The participant contributes positively to a psychologically safe team environment.",
+                "They show commitment to developing future leaders and high-performing talent."
+            ]},
+        };
+
+        let db;
+
+        // Initialize Firebase services
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Firebase Initialization Error:", e);
+            document.getElementById('form-container').innerHTML = 
+                '<div class="text-center p-8 bg-red-100 rounded-xl text-red-700">Database Connection Failed. Check console for details.</div>';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const userId = params.get('user');
+            const tierId = parseInt(params.get('tier'));
+            const container = document.getElementById('form-container');
+            const feedbackSection = document.getElementById('feedback-questions');
+            
+            if (!userId || !tierId || !(tierId in TIER_QUESTIONS)) {
+                container.innerHTML = '<div class="text-center p-8 bg-yellow-100 rounded-xl text-yellow-800">Error: Missing or invalid user ID or tier ID in the URL.</div>';
+                return;
+            }
+
+            const tierData = TIER_QUESTIONS[tierId];
+            document.getElementById('tier-title').textContent = tierData.title;
+
+            // Generate feedback questions dynamically
+            tierData.questions.forEach((question, index) => {
+                const qNum = index + 1;
+                const fieldName = `q${qNum}`;
+
+                const questionHtml = `
+                    <div class="mb-6 p-4 bg-gray-50 rounded-lg shadow-inner">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            ${qNum}. ${question}
+                        </label>
+                        <div class="flex justify-between items-center bg-white rounded-md p-3 border border-gray-200">
+                            <span class="text-xs text-gray-500">Strongly Disagree (1)</span>
+                            <input type="range" min="1" max="5" value="3" name="${fieldName}" data-question="${question}"
+                                class="w-2/3 h-2 bg-indigo-100 rounded-lg appearance-none cursor-pointer range-lg accent-indigo-600" 
+                                oninput="document.getElementById('value-${fieldName}').textContent=this.value">
+                            <span id="value-${fieldName}" class="text-lg font-bold text-indigo-600">3</span>
+                            <span class="text-xs text-gray-500">Strongly Agree (5)</span>
+                        </div>
+                    </div>
+                `;
+                feedbackSection.insertAdjacentHTML('beforeend', questionHtml);
+            });
+
+            // Handle Form Submission
+            document.getElementById('feedback-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                document.getElementById('submit-btn').disabled = true;
+                document.getElementById('submit-btn').textContent = 'Submitting...';
+
+                const formData = new FormData(e.target);
+                const submissionData = {
+                    userId: userId,
+                    tierId: tierId,
+                    tierTitle: tierData.title,
+                    reviewerType: formData.get('reviewerType'),
+                    comment: formData.get('comment'),
+                    ratings: {},
+                    timestamp: new Date().toISOString()
+                };
+
+                // Extract all ratings
+                feedbackSection.querySelectorAll('input[type="range"]').forEach(input => {
+                    submissionData.ratings[input.name] = parseInt(input.value);
+                });
+
+                try {
+                    // Save to a public collection path: artifacts/{appId}/public/feedback/{docId}
+                    const feedbackCollectionRef = collection(db, `/artifacts/${APP_ID}/public/feedback`);
+                    await addDoc(feedbackCollectionRef, submissionData);
+                    
+                    container.innerHTML = `
+                        <div class="text-center p-8 bg-green-100 rounded-xl shadow-2xl">
+                            <h2 class="text-3xl font-bold text-green-700 mb-3">Feedback Submitted!</h2>
+                            <p class="text-gray-700">Thank you for taking the time to complete this leadership rep.</p>
+                            <p class="mt-4 text-sm text-gray-500">Your anonymous insights will help the participant grow in **${tierData.title}**.</p>
+                        </div>
+                    `;
+                } catch (error) {
+                    console.error("Firestore Submission Error:", error);
+                    document.getElementById('error-message').textContent = 'Submission Failed. Check your network connection or try again.';
+                    document.getElementById('submit-btn').disabled = false;
+                    document.getElementById('submit-btn').textContent = 'Submit Feedback';
+                }
+            });
+        });
+    </script>
+    <style>
+        :root {
+            --color-leader-blue: #1e3a8a; /* Indigo-900 equivalent */
+            --color-leader-accent: #f97316; /* Orange-600 equivalent */
+        }
+        .text-leader-blue { color: var(--color-leader-blue); }
+        .bg-leader-accent { background-color: var(--color-leader-accent); }
+        .border-leader-accent { border-color: var(--color-leader-accent); }
+        .focus\:ring-leader-accent:focus { --tw-ring-color: var(--color-leader-accent); }
+        .accent-indigo-600 { accent-color: var(--color-leader-blue); }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4 font-sans">
+
+    <div id="form-container" class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6 md:p-8">
+        
+        <header class="mb-8 border-b pb-4">
+            <h1 class="text-3xl font-extrabold text-leader-blue flex items-center">
+                LeaderReps 
+                <span class="ml-2 text-base text-gray-500 font-medium">| Multi-Source Feedback</span>
+            </h1>
+            <h2 class="mt-2 text-xl font-semibold text-gray-800">
+                Targeted Rep: 
+                <span id="tier-title" class="text-leader-accent">Loading...</span>
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">
+                Your feedback is anonymous and crucial for the participant's growth journey.
+            </p>
+        </header>
+
+        <form id="feedback-form">
+            
+            <div class="mb-8 p-4 bg-indigo-50 rounded-xl border border-indigo-200">
+                <label for="reviewerType" class="block text-sm font-bold text-gray-700 mb-2">
+                    1. What is your relationship to the participant?
+                </label>
+                <select id="reviewerType" name="reviewerType" required
+                    class="w-full p-3 border border-indigo-300 rounded-lg focus:ring-indigo-600 focus:border-indigo-600 text-gray-700">
+                    <option value="" disabled selected>Select Relationship</option>
+                    <option value="Manager">Manager/Supervisor</option>
+                    <option value="Direct Report">Direct Report</option>
+                    <option value="Colleague">Peer/Colleague</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            
+            <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">
+                2. Rate the Participant's Performance (1 = Disagree, 5 = Agree)
+            </h3>
+
+            <div id="feedback-questions">
+                <!-- Questions injected by JavaScript based on tier ID -->
+            </div>
+            
+            <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2 mt-8">
+                3. Additional Context (Optional)
+            </h3>
+
+            <div class="mb-6">
+                <label for="comment" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Please provide any specific examples or constructive comments.
+                </label>
+                <textarea id="comment" name="comment" rows="4" 
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-600 focus:border-indigo-600"
+                    placeholder="E.g., I observed them actively coaching Jane last week, which resulted in a good outcome."></textarea>
+            </div>
+
+            <p id="error-message" class="text-sm text-red-500 mb-4"></p>
+
+            <button type="submit" id="submit-btn" 
+                class="w-full py-3 bg-leader-blue text-white font-bold rounded-lg shadow-lg hover:bg-indigo-900 transition duration-200 disabled:opacity-50">
+                Submit Feedback
+            </button>
+
+            <p class="mt-4 text-xs text-center text-gray-400">
+                Feedback is anonymous to the participant. Data is securely stored in Firebase Firestore.
+            </p>
+        </form>
+
+    </div>
+</body>
+</html>
