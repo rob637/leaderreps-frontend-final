@@ -512,7 +512,7 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
             });
 
             setMessage("Scenario submitted! Be ready to discuss it in your Leaders Circle.");
-            setScenarioInput('');
+            setScenarioSubmit('');
         } catch (e) {
             console.error("Error submitting scenario:", e);
             setMessage(`Error submitting scenario: ${e.message}`);
@@ -804,19 +804,27 @@ function App ({ firebaseConfig, initialAuthToken }) {
     }
 
     if (isLoading || !userId) {
-        const handleManualLoad = async () => {
-            // DEBUG OVERRIDE: Perform a real anonymous sign-in to get a valid UID.
-            if (authService) {
-                signInAnonymously(authService).catch(e => {
-                    console.error('Anon sign-in failed during debug override:', e);
-                    setError(`Auth failed: ${e.message}`);
-                    setIsLoading(false);
-                });
-            } else {
-                setError('Auth service not initialized. Cannot perform debug sign-in.');
-                setIsLoading(false);
-            }
-        };
+        const handleManualLoad = () => {
++   // 1) Immediately bypass the loading gate so the app renders.
++   setUserId(prev => prev ?? 'DEBUG_USER_ID_OVERRIDE');
++   setIsLoading(false);
++
++   // 2) Try to get a real Firebase user in the background.
++   if (authService) {
++     signInAnonymously(authService)
++       .then(cred => {
++         // onAuthStateChanged will update userId for you.
++         console.log('Anon user ready:', cred.user?.uid);
++       })
++       .catch(e => {
++         console.error('Anon sign-in failed (debug mode will stay local):', e);
++         // Optional: surface this, but don't kick user back to loading.
++         setError(`Auth failed: ${e.message}`);
++       });
++   } else {
++     console.warn('Auth not initialized yet; staying in local debug mode.');
++   }
++ };
 
         return (
             <div className="flex justify-center items-center h-screen bg-gray-50">
