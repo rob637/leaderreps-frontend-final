@@ -4,6 +4,7 @@ import App from './App.jsx';
 import './index.css';
 
 // --- START FIREBASE CONFIGURATION (LIVE KEYS) ---
+// Define the live configuration object using the credentials you created.
 const liveFirebaseConfig = {
   apiKey: "AIzaSyD6eHDIDgC6NEIHLxMpQSe9l8X9MjKV6gk",
   authDomain: "leaderreps-pd-plan.firebaseapp.com",
@@ -19,7 +20,7 @@ const firebaseConfig = liveFirebaseConfig;
 const appId = liveFirebaseConfig.projectId; 
 const initialAuthToken = null; 
 
-// We pass the live credentials as global variables for the App.jsx file to use during initialization.
+// The App.jsx component will now receive these as props, guaranteeing initialization.
 window.__firebase_config = JSON.stringify(firebaseConfig);
 window.__app_id = appId;
 window.__initial_auth_token = initialAuthToken;
