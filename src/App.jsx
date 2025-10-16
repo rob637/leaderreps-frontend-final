@@ -1,30 +1,38 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, setDoc, onSnapshot, updateDoc, writeBatch, setLogLevel as setFirestoreLogLevel } from 'firebase/firestore';
-import { Home, CheckCircle, Target, Users, TrendingUp, Zap, Clock, Send, Eye, MessageSquare, Briefcase } from 'lucide-react';
+import { initializeApp } from 'firebase/app';
+import {
+  getAuth,
+  signInAnonymously,
+  signInWithCustomToken,
+  onAuthStateChanged,
+  setPersistence,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  inMemoryPersistence,
+} from 'firebase/auth';
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  onSnapshot,
+  updateDoc,
+  writeBatch,
+} from 'firebase/firestore';
+import {
+  Home,
+  CheckCircle,
+  Target,
+  Users,
+  TrendingUp,
+  Zap,
+  Clock,
+  Send,
+  Eye,
+  MessageSquare,
+  Briefcase,
+} from 'lucide-react';
 
-// ---------- CONFIG HELPERS ----------
-const resolvedFirebaseConfig = (passedConfig) => {
-  if (passedConfig && passedConfig.projectId) return passedConfig;
-  // Fallback to Vite env
-  const cfg = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
-  };
-  // If projectId missing, config is not present
-  if (!cfg.projectId) return null;
-  return cfg;
-};
-
-// ---------- CONSTANTS ----------
-const APP_ID = 'leaderreps-pd-plan';
-
+// ---------- DATA STRUCTURES ----------
 const LEADERSHIP_TIERS = [
   { id: 1, title: 'Self-Awareness & Management', icon: Eye, description: 'Mastering your own strengths, motivations, and resilience (Tier 1).' },
   { id: 2, title: 'People & Coaching', icon: Users, description: 'Giving effective feedback and developing direct reports (Tier 2).' },
@@ -58,9 +66,9 @@ const REFLECTION_PROMPTS = {
 const createUniqueItemSelector = (tierList) => {
   const selectedIds = new Set();
   const allContentIds = SAMPLE_CONTENT_LIBRARY.map((c) => c.id);
-  const prioritized = SAMPLE_CONTENT_LIBRARY.filter((c) => tierList.includes(c.tier));
-  const secondary = SAMPLE_CONTENT_LIBRARY.filter((c) => !tierList.includes(c.tier));
-  const pool = [...prioritized, ...secondary];
+  const prioritizedContent = SAMPLE_CONTENT_LIBRARY.filter((c) => tierList.includes(c.tier));
+  const secondaryContent = SAMPLE_CONTENT_LIBRARY.filter((c) => !tierList.includes(c.tier));
+  const pool = [...prioritizedContent, ...secondaryContent];
 
   const addUniqueItem = () => {
     for (let item of pool) {
@@ -82,6 +90,7 @@ const createUniqueItemSelector = (tierList) => {
 
 const generatePlanData = (assessment) => {
   const { managerStatus, goalPriorities, tierSelfRating } = assessment;
+
   let startTier;
   switch (managerStatus) {
     case 'New Manager': startTier = 1; break;
@@ -95,14 +104,17 @@ const generatePlanData = (assessment) => {
     .map(([tierId]) => parseInt(tierId, 10));
 
   const priorityList = Array.from(new Set([...goalPriorities, ...sortedRatings]));
-  const plan = [];
-  let currentTierIndex = priorityList.findIndex((t) => t === startTier);
-  if (currentTierIndex === -1) currentTierIndex = 0;
-  const requiredTiers = priorityList;
 
+  const plan = [];
+  let currentTierIndex = priorityList.findIndex((tier) => tier === startTier);
+  if (currentTierIndex === -1) currentTierIndex = 0;
+
+  const requiredTiers = priorityList;
   let contentSelector = createUniqueItemSelector(requiredTiers);
+
   for (let month = 1; month <= 24; month++) {
     let currentTier = requiredTiers[currentTierIndex];
+
     if ((month - 1) % 4 === 0 && month > 1) {
       currentTierIndex = (currentTierIndex + 1) % requiredTiers.length;
       currentTier = requiredTiers[currentTierIndex];
@@ -114,7 +126,6 @@ const generatePlanData = (assessment) => {
     for (let i = 0; i < 4; i++) {
       let itemId = contentSelector();
       if (!itemId) {
-        // reset selector and allow repeats
         contentSelector = createUniqueItemSelector(requiredTiers);
         itemId = contentSelector();
       }
@@ -134,8 +145,12 @@ const generatePlanData = (assessment) => {
       reflectionText: null,
     });
   }
+
   return plan;
 };
+
+// Firestore path app id
+const APP_ID = 'leaderreps-pd-plan';
 
 // ---------- UI SUBCOMPONENTS ----------
 function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
@@ -144,6 +159,7 @@ function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
     'leader-accent': { border: 'border-leader-accent', text: 'text-leader-accent' },
   };
   const { border, text } = palette[color] ?? palette['leader-blue'];
+
   return (
     <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 ${border}`}>
       <div className="flex items-center space-x-4">
@@ -157,8 +173,10 @@ function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
 
 function ReflectionModal({ isOpen, monthData, reflectionInput, setReflectionInput, onSubmit, onClose }) {
   if (!isOpen || !monthData) return null;
+
   const promptKey = monthData.tier in REFLECTION_PROMPTS ? monthData.tier : 5;
   const prompt = REFLECTION_PROMPTS[promptKey] || REFLECTION_PROMPTS[5];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 animate-in fade-in zoom-in-50">
@@ -169,32 +187,38 @@ function ReflectionModal({ isOpen, monthData, reflectionInput, setReflectionInpu
         <p className="text-sm font-semibold text-gray-700 mb-4">
           <strong>Workout Requirement:</strong> Please complete this reflection based on the QuickStart workbook before marking the month complete.
         </p>
+
         <p
           className="text-base italic p-3 bg-leader-light rounded-lg border border-leader-accent/50 text-gray-800 mb-4"
           dangerouslySetInnerHTML={{ __html: prompt }}
         />
+
         <textarea
           value={reflectionInput || ''}
           onChange={(e) => setReflectionInput(e.target.value)}
           placeholder="Type your reflection here. Be honest, clear is kind!"
-          rows="6"
+          rows={6}
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-leader-accent focus:border-leader-accent transition duration-150"
         />
+
         <div className="mt-6 flex justify-end space-x-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+          >
             Cancel
           </button>
           <button
             onClick={() => onSubmit(monthData.month)}
-            disabled={(reflectionInput || '').length < 50}
+            disabled={reflectionInput.length < 50}
             className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition ${
-              (reflectionInput || '').length >= 50 ? 'bg-leader-accent hover:bg-orange-700' : 'bg-gray-400 cursor-not-allowed'
+              reflectionInput.length >= 50 ? 'bg-leader-accent hover:bg-orange-700' : 'bg-gray-400 cursor-not-allowed'
             }`}
           >
             Submit Reflection & Complete
           </button>
         </div>
-        {(reflectionInput || '').length < 50 && (
+        {reflectionInput.length < 50 && (
           <p className="text-xs text-red-500 mt-2 text-right">Reflection must be at least 50 characters.</p>
         )}
       </div>
@@ -204,6 +228,7 @@ function ReflectionModal({ isOpen, monthData, reflectionInput, setReflectionInpu
 
 function ScenarioModal({ isOpen, scenarioInput, setScenarioInput, onSubmit, onClose }) {
   if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 animate-in fade-in zoom-in-50">
@@ -214,28 +239,33 @@ function ScenarioModal({ isOpen, scenarioInput, setScenarioInput, onSubmit, onCl
         <p className="text-sm text-gray-700 mb-4">
           Briefly describe a situation in which you struggled to show up as your best leadership self, or describe an upcoming situation you are unsure about.
         </p>
+
         <textarea
           value={scenarioInput || ''}
           onChange={(e) => setScenarioInput(e.target.value)}
           placeholder="Describe your scenario here (e.g., 'A direct report challenged me using the Defender Persona after redirecting feedback...')."
-          rows="8"
+          rows={8}
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-leader-accent focus:border-leader-accent transition duration-150"
         />
+
         <div className="mt-6 flex justify-end space-x-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+          >
             Cancel
           </button>
           <button
             onClick={onSubmit}
-            disabled={(scenarioInput || '').length < 50}
+            disabled={scenarioInput.length < 50}
             className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition ${
-              (scenarioInput || '').length >= 50 ? 'bg-leader-blue hover:bg-blue-800' : 'bg-gray-400 cursor-not-allowed'
+              scenarioInput.length >= 50 ? 'bg-leader-blue hover:bg-blue-800' : 'bg-gray-400 cursor-not-allowed'
             }`}
           >
             Submit Scenario for Review
           </button>
         </div>
-        {(scenarioInput || '').length < 50 && (
+        {scenarioInput.length < 50 && (
           <p className="text-xs text-red-500 mt-2 text-right">Scenario must be at least 50 characters.</p>
         )}
       </div>
@@ -243,6 +273,7 @@ function ScenarioModal({ isOpen, scenarioInput, setScenarioInput, onSubmit, onCl
   );
 }
 
+// ---------- PLAN GENERATOR ----------
 function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
   const [status, setStatus] = useState('New Manager');
   const [goals, setGoals] = useState([]);
@@ -258,7 +289,9 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
   }, []);
 
   const toggleGoal = (tierId) => {
-    const newGoals = goals.includes(tierId) ? goals.filter((id) => id !== tierId) : [...goals, tierId].slice(0, 3);
+    const newGoals = goals.includes(tierId)
+      ? goals.filter((id) => id !== tierId)
+      : [...goals, tierId].slice(0, 3);
     setGoals(newGoals);
   };
 
@@ -279,7 +312,13 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
     };
 
     const plan = generatePlanData(assessment);
-    const payload = { ownerUid: userId, assessment, plan, currentMonth: 1, lastUpdate: new Date().toISOString() };
+    const payload = {
+      ownerUid: userId,
+      assessment,
+      plan,
+      currentMonth: 1,
+      lastUpdate: new Date().toISOString(),
+    };
 
     try {
       const planRef = doc(db, 'artifacts', APP_ID, 'users', userId, 'leadership_plan', 'roadmap');
@@ -306,6 +345,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
       />
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Status */}
         <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-leader-blue">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">1. Select Your Current Status</h3>
           <select
@@ -320,6 +360,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
           <p className="text-xs text-gray-500 mt-2">This determines your starting tier (QuickStart focuses on Tiers 1-3).</p>
         </div>
 
+        {/* Goals */}
         <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-leader-accent">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">2. Top 3 Leadership Goals ({goals.length}/3)</h3>
           <div className="space-y-2">
@@ -342,6 +383,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
           <p className="text-xs text-gray-500 mt-2">Your plan will heavily prioritize these areas.</p>
         </div>
 
+        {/* Ratings */}
         <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-leader-blue">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">3. Self-Rate Proficiency (1-10)</h3>
           {LEADERSHIP_TIERS.map((tier) => (
@@ -374,13 +416,16 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
         >
           Generate 24-Month Plan
         </button>
-        {message && <p className={`mt-4 font-semibold ${message.startsWith('Error') ? 'text-red-500' : 'text-green-600'}`}>{message}</p>}
+        {message && (
+          <p className={`mt-4 font-semibold ${message.startsWith('Error') ? 'text-red-500' : 'text-green-600'}`}>{message}</p>
+        )}
       </div>
     </div>
   );
 }
 
-function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
+// ---------- TRACKER DASHBOARD ----------
+function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID }) {
   const [isReflectionModalOpen, setIsReflectionModalOpen] = useState(false);
   const [reflectionInput, setReflectionInput] = useState('');
   const [isScenarioModalOpen, setIsScenarioModalOpen] = useState(false);
@@ -400,11 +445,13 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
   const updatePlanReflectionLocal = useCallback(
     async (month, reflectionText) => {
       const planRef = doc(db, 'artifacts', APP_ID, 'users', userId, 'leadership_plan', 'roadmap');
-      const updatedPlan = (userPlanData.plan ?? []).map((p) => (p.month === month ? { ...p, reflectionText } : p));
+      const updatedPlan = (userPlanData.plan ?? []).map((p) =>
+        p.month === month ? { ...p, reflectionText } : p
+      );
       await updateDoc(planRef, { plan: updatedPlan, lastUpdate: new Date().toISOString() });
       setUserPlanData((prev) => ({ ...prev, plan: updatedPlan }));
     },
-    [db, userId, userPlanData.plan, setUserPlanData]
+    [db, APP_ID, userId, userPlanData.plan, setUserPlanData]
   );
 
   const markComplete = useCallback(
@@ -413,7 +460,6 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
         setMessage('Firestore not initialized.');
         return;
       }
-
       const monthData = plan.find((p) => p.month === month);
       if (!skipReflectionCheck && monthData && monthData.reflectionText === null) {
         setMessage('Please submit your Monthly Reflection before marking this month complete.');
@@ -424,7 +470,10 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
       const planRef = doc(db, 'artifacts', APP_ID, 'users', userId, 'leadership_plan', 'roadmap');
       const batch = writeBatch(db);
 
-      const updatedPlan = plan.map((p) => (p.month === month ? { ...p, status: 'Completed', dateCompleted: new Date().toISOString() } : p));
+      const updatedPlan = plan.map((p) =>
+        p.month === month ? { ...p, status: 'Completed', dateCompleted: new Date().toISOString() } : p
+      );
+
       batch.update(planRef, {
         plan: updatedPlan,
         currentMonth: Math.min(month + 1, 24),
@@ -440,11 +489,11 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
         setMessage(`Error: Could not update plan: ${e.message}`);
       }
     },
-    [db, userId, plan]
+    [db, APP_ID, userId, plan]
   );
 
   const handleSubmitReflection = useCallback(async () => {
-    if ((reflectionInput || '').length < 50 || !currentMonthPlan) return;
+    if (reflectionInput.length < 50 || !currentMonthPlan) return;
     setIsReflectionModalOpen(false);
     setMessage('Saving reflection...');
     try {
@@ -458,7 +507,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
   }, [reflectionInput, currentMonthPlan, updatePlanReflectionLocal, markComplete]);
 
   const handleScenarioSubmit = useCallback(async () => {
-    if ((scenarioInput || '').length < 50) return;
+    if (scenarioInput.length < 50) return;
     setIsScenarioModalOpen(false);
     setMessage('Submitting scenario to your trainer...');
     try {
@@ -473,7 +522,14 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
       console.error('Error submitting scenario:', e);
       setMessage(`Error submitting scenario: ${e.message}`);
     }
-  }, [scenarioInput, userId, currentMonthPlan, db]);
+  }, [scenarioInput, userId, currentMonthPlan, db, APP_ID]);
+
+  const handleFeedbackLink = () => {
+    const uniqueId = userId;
+    const feedbackUrl = `https://leaderrepspd.netlify.app/feedback_form.html?user=${uniqueId}&tier=${currentMonthPlan.tier}`;
+    // eslint-disable-next-line no-alert
+    prompt('Feedback Link (Copy and Share)', feedbackUrl);
+  };
 
   if (!currentMonthPlan) {
     return (
@@ -502,6 +558,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
         color="leader-blue"
       />
 
+      {/* Progress & Quick Actions */}
       <div className="mt-8 bg-white p-6 rounded-xl shadow-lg">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-bold text-gray-800">Roadmap Progress: Month {currentMonth} of 24</h3>
@@ -520,11 +577,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
             Draft Leaders Circle Scenario
           </button>
           <button
-            onClick={() => {
-              const uniqueId = userId;
-              const feedbackUrl = `https://leaderrepspd.netlify.app/feedback_form.html?user=${uniqueId}&tier=${currentMonthPlan.tier}`;
-              prompt('Feedback Link (Copy and Share)', feedbackUrl);
-            }}
+            onClick={handleFeedbackLink}
             className="flex items-center justify-center p-3 text-sm font-semibold text-white bg-leader-accent rounded-lg hover:bg-orange-700 transition shadow-md"
           >
             <Send className="w-4 h-4 mr-2" />
@@ -535,16 +588,22 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
             <span className="font-medium text-gray-700">Completed Reps: {completedItems}</span>
           </div>
         </div>
-        {message && <p className={`mt-4 text-center font-semibold ${message.startsWith('Error') ? 'text-red-500' : 'text-green-600'}`}>{message}</p>}
+        {message && (
+          <p className={`mt-4 text-center font-semibold ${message.startsWith('Error') ? 'text-red-500' : 'text-green-600'}`}>
+            {message}
+          </p>
+        )}
       </div>
 
+      {/* Current Monthly Workout */}
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-leader-accent">
             <h3 className="text-xl font-bold text-gray-800 mb-2">{theme}</h3>
             <p className="text-sm text-gray-500 mb-4">
-              Tier {tier}: {tierDetails?.title}
+              Tier {tier}: {tierDetails.title}
             </p>
+
             <div className="space-y-4">
               {contentList.map((content) => (
                 <a
@@ -575,6 +634,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
                 Complete Monthly Workout & Reflect
               </button>
             )}
+
             {currentMonthPlan.reflectionText && (
               <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
                 <p className="text-sm font-semibold text-green-700">Reflection Saved: </p>
@@ -584,6 +644,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
           </div>
         </div>
 
+        {/* Next Month */}
         <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-leader-blue">
           <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
             <TrendingUp className="w-5 h-5 text-leader-blue" />
@@ -598,12 +659,16 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
               <p className="mt-3 text-sm text-gray-600">Get ready for these core Reps:</p>
               <ul className="list-disc list-inside mt-2 space-y-1 text-sm text-gray-600">
                 {nextMonthPlan.requiredContentIds.slice(0, 3).map((id, index) => (
-                  <li key={`next-${id}-${index}`}>{SAMPLE_CONTENT_LIBRARY.find((c) => c.id === id)?.title || `Resource ${index + 1}`}</li>
+                  <li key={`next-${id}-${index}`}>
+                    {SAMPLE_CONTENT_LIBRARY.find((c) => c.id === id)?.title || `Resource ${index + 1}`}
+                  </li>
                 ))}
               </ul>
             </>
           ) : (
-            <p className="text-sm text-gray-500">You have completed the 24-month roadmap! Well done, Exceptional Leader!</p>
+            <p className="text-sm text-gray-500">
+              You have completed the 24-month roadmap! Well done, Exceptional Leader!
+            </p>
           )}
           <p className="mt-4 text-xs text-gray-500">Your plan adapts based on your self-assessment and goals.</p>
         </div>
@@ -617,6 +682,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
         onSubmit={handleSubmitReflection}
         onClose={() => setIsReflectionModalOpen(false)}
       />
+
       <ScenarioModal
         isOpen={isScenarioModalOpen}
         scenarioInput={scenarioInput}
@@ -629,8 +695,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
 }
 
 // ---------- MAIN APP ----------
-function App({ firebaseConfig, initialAuthToken }) {
-  const cfg = resolvedFirebaseConfig(firebaseConfig);
+function App({ firebaseConfig: firebaseConfigProp, initialAuthToken }) {
   const [dbService, setDbService] = useState(null);
   const [authService, setAuthService] = useState(null);
   const [userId, setUserId] = useState(null);
@@ -639,81 +704,111 @@ function App({ firebaseConfig, initialAuthToken }) {
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  useEffect(() => {
-    // Log Firestore debug when needed (uncomment if you want super-verbose logs)
-    // setFirestoreLogLevel('debug');
+  // Fallback to Vite env if props aren’t provided
+  const firebaseConfig =
+    firebaseConfigProp ||
+    (typeof import.meta !== 'undefined' && import.meta.env && {
+      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+      storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+      appId: import.meta.env.VITE_FIREBASE_APP_ID,
+      measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+    });
 
-    if (!cfg) {
+  // 1) Initialization + Auth
+  useEffect(() => {
+    if (isInitialized) return;
+
+    if (!firebaseConfig || !firebaseConfig.projectId) {
+      console.error('[Auth] Missing firebaseConfig', firebaseConfig);
       setError('Firebase is not configured. Ensure credentials are passed correctly.');
       setIsLoading(false);
       return;
     }
 
-    if (isInitialized) return;
-
     try {
-      const appInstance = getApps().length ? getApp() : initializeApp(cfg);
+      const appInstance = initializeApp(firebaseConfig);
       const dbInstance = getFirestore(appInstance);
       const authInstance = getAuth(appInstance);
+
+      console.log('[Firebase] projectId:', firebaseConfig.projectId, 'host:', location.hostname);
+      window.__lr_debug = { firebaseConfig, appInstance };
 
       setDbService(dbInstance);
       setAuthService(authInstance);
       setIsInitialized(true);
 
-      const initializeAuth = async () => {
+      // Persistence with fallbacks
+      (async () => {
         try {
-          if (initialAuthToken) {
-            console.log('[Auth] Using custom token');
-            await signInWithCustomToken(authInstance, initialAuthToken);
-          } else {
-            console.log('[Auth] Signing in anonymously…');
-            await signInAnonymously(authInstance);
+          await setPersistence(authInstance, indexedDBLocalPersistence);
+          console.log('[Auth] Using indexedDBLocalPersistence');
+        } catch {
+          try {
+            await setPersistence(authInstance, browserLocalPersistence);
+            console.log('[Auth] Fallback to browserLocalPersistence');
+          } catch {
+            await setPersistence(authInstance, inMemoryPersistence);
+            console.warn('[Auth] Fallback to inMemoryPersistence (non-persistent)');
           }
-        } catch (e) {
-          console.error('[Auth] Initialization error:', e?.code, e?.message);
-          setError(`Authentication Failed: ${e?.code || ''} ${e?.message || ''}`.trim());
         }
-      };
+      })();
 
       const hangTimeout = setTimeout(() => {
         if (isLoading) {
-          setError('Authentication hang detected. Check Firebase Auth settings (enable Anonymous) and Authorized Domains.');
+          setError(
+            'Authentication hang detected. Check Firebase Auth settings (enable Anonymous) and Authorized Domains.'
+          );
           setIsLoading(false);
         }
       }, 15000);
 
       const unsubscribe = onAuthStateChanged(authInstance, (user) => {
+        console.log('[Auth] onAuthStateChanged ->', user ? user.uid : 'null');
         clearTimeout(hangTimeout);
-        if (user) {
-          console.log('[Auth] onAuthStateChanged user:', user.uid);
-          setUserId(user.uid);
-        } else {
-          console.warn('[Auth] onAuthStateChanged: no user');
-          setUserId(null);
-        }
-        // Plan listener will flip isLoading off
+        setUserId(user ? user.uid : null);
+        // isLoading finishes after plan snapshot below
       });
 
-      initializeAuth();
+      const go = async () => {
+        try {
+          if (initialAuthToken) {
+            console.log('[Auth] Using custom token sign-in');
+            await signInWithCustomToken(authInstance, initialAuthToken);
+          } else {
+            console.log('[Auth] Using anonymous sign-in');
+            await signInAnonymously(authInstance);
+          }
+        } catch (e) {
+          console.error('[Auth] Sign-in error:', e);
+          setError(`Authentication Failed: ${e.code || e.message}`);
+          setIsLoading(false);
+        }
+      };
+      go();
 
       return () => {
+        clearTimeout(hangTimeout);
         unsubscribe();
       };
     } catch (e) {
-      if (e?.code !== 'app/duplicate-app') {
-        console.error('Critical Firebase Init Error:', e);
-        setError(`Critical Initialization Error: ${e?.message}`);
+      if (e.code !== 'app/duplicate-app') {
+        console.error('[Firebase] Critical init error:', e);
+        setError(`Critical Initialization Error: ${e.message}`);
         setIsLoading(false);
       }
     }
-  }, [cfg, initialAuthToken, isInitialized, isLoading]);
+  }, [firebaseConfig, initialAuthToken, isInitialized, isLoading]);
 
-  // Firestore plan listener
+  // 2) Plan listener
   useEffect(() => {
     if (!userId || !dbService || !isInitialized) return;
+
     const planRef = doc(dbService, 'artifacts', APP_ID, 'users', userId, 'leadership_plan', 'roadmap');
 
-    const unsubscribe = onSnapshot(
+    const unsub = onSnapshot(
       planRef,
       (docSnap) => {
         if (docSnap.exists()) {
@@ -725,7 +820,9 @@ function App({ firebaseConfig, initialAuthToken }) {
       },
       (e) => {
         if (e.code === 'permission-denied') {
-          setError('Application Error: Failed to load plan: Missing or insufficient permissions. Ensure your Firestore Security Rules are correct.');
+          setError(
+            'Application Error: Failed to load plan: Missing or insufficient permissions. Ensure your Firestore Security Rules are correct.'
+          );
         } else {
           console.error('Firestore Snapshot Error:', e);
           setError(`Failed to load plan: ${e.message}`);
@@ -733,10 +830,10 @@ function App({ firebaseConfig, initialAuthToken }) {
         setIsLoading(false);
       }
     );
-    return () => unsubscribe();
+
+    return () => unsub();
   }, [userId, isInitialized, dbService]);
 
-  // ---------- ERROR STATES ----------
   if (error) {
     return (
       <div className="p-8 text-center text-red-700 bg-red-100 rounded-lg max-w-lg mx-auto mt-12">
@@ -746,29 +843,30 @@ function App({ firebaseConfig, initialAuthToken }) {
     );
   }
 
-  // ---------- LOADING + DEBUG OVERRIDE ----------
   if (isLoading || !userId) {
+    // Debug override handler
     const handleManualLoad = () => {
-      console.warn('[Debug] Manual override: forcing local UI load');
       setUserId((prev) => prev ?? 'DEBUG_USER_ID_OVERRIDE');
       setIsLoading(false);
 
       if (authService) {
         signInAnonymously(authService)
-          .then((cred) => console.log('[Debug] Anon user ready:', cred.user?.uid))
+          .then((cred) => {
+            console.log('Anon user ready:', cred.user?.uid);
+          })
           .catch((e) => {
-            console.error('[Debug] Anon sign-in failed:', e?.code, e?.message);
-            setError(`Auth failed: ${e?.code || ''} ${e?.message || ''}`.trim());
+            console.error('Anon sign-in failed (debug mode will stay local):', e);
+            setError(`Auth failed: ${e.message}`);
           });
       } else {
-        console.warn('[Debug] Auth not initialized yet; staying in local debug mode.');
+        console.warn('Auth not initialized yet; staying in local debug mode.');
       }
     };
 
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50">
         <div className="p-6 text-center text-gray-700">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-leader-accent mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-leader-accent mx-auto" />
           <p className="mt-4 font-semibold">Authenticating and loading LeaderReps data...</p>
           <button
             onClick={handleManualLoad}
@@ -781,13 +879,18 @@ function App({ firebaseConfig, initialAuthToken }) {
     );
   }
 
-  // ---------- MAIN UI ----------
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       {!userPlanData ? (
         <PlanGenerator userId={userId} setPlanData={setUserPlanData} setIsLoading={setIsLoading} db={dbService} />
       ) : (
-        <TrackerDashboard userId={userId} userPlanData={userPlanData} setUserPlanData={setUserPlanData} db={dbService} />
+        <TrackerDashboard
+          userId={userId}
+          userPlanData={userPlanData}
+          setUserPlanData={setUserPlanData}
+          db={dbService}
+          APP_ID={APP_ID}
+        />
       )}
       <p className="fixed bottom-2 left-2 text-xs text-gray-400">User ID: {userId}</p>
     </div>
