@@ -3,8 +3,9 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot, updateDoc, writeBatch } from 'firebase/firestore';
 import { Home, CheckCircle, Target, Users, TrendingUp, Zap, Clock, Send, Eye, MessageSquare, Briefcase, RefreshCw } from 'lucide-react';
-// 1. IMPORT LOGO
-import LeaderRepsLogo from './image_853dcd.png'; 
+// FIX: Using the direct file name. This is the most common fix for build errors
+// when using assets uploaded directly into the project's source context.
+import LeaderRepsLogo from 'image_853dcd.png'; 
 
 /* =========================
    PROJECT CONSTANTS / DATA
@@ -221,7 +222,7 @@ const APP_ID = "leaderreps-pd-plan";
 /* =========================
    UI SUB-COMPONENTS
    ========================= */
-// 1. UPDATED TITLE CARD TO ACCEPT LOGO
+// UPDATED TITLE CARD TO USE LOGO
 function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
   const palette = {
     'leader-blue': { border: 'border-leader-blue', text: 'text-leader-blue' },
@@ -599,7 +600,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
     prompt("Feedback Link (Copy and Share)", feedbackUrl);
   };
   
-  // 2. NEW: Function to force the app back to the Plan Generator
+  // Function to force the app back to the Plan Generator
   const handleStartOver = () => {
       if (window.confirm("Are you sure you want to start a NEW plan? This will overwrite your existing roadmap upon completion, but keep your old data in Firestore.")) {
           setUserPlanData(null);
@@ -627,7 +628,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
       };
   }).filter(Boolean), [currentMonthContent]);
   
-  // 3. FIX: Logic to correctly process next month's content for display
+  // Logic to correctly process next month's content for display
   const nextMonthContentReps = nextMonthPlan?.requiredContent || [];
   const nextMonthContentList = useMemo(() => nextMonthContentReps.map(rep => 
       SAMPLE_CONTENT_LIBRARY.find(c => c.id === rep.id)
@@ -676,7 +677,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
             <Clock className="w-4 h-4 text-leader-blue" />
             <span className='font-medium text-gray-700'>Completed Reps: {completedItems}</span>
           </div>
-           {/* 2. NEW: Start Over Button */}
+           {/* Start Over Button */}
           <button
             onClick={handleStartOver}
             className="flex items-center justify-center p-3 text-sm font-semibold text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300 transition shadow-md"
@@ -743,10 +744,9 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
               <p className="text-md font-semibold text-gray-700">{nextMonthPlan.theme}</p>
               <p className="text-sm text-gray-500 mt-1">Tier {nextMonthPlan.tier}: {nextTierDetails?.title}</p>
               <p className="mt-3 text-sm text-gray-600">Get ready for these core Reps:</p>
-              {/* 3. FIX: Displaying next month's content */}
               <ul className="list-disc list-inside mt-2 space-y-1 text-sm text-gray-600">
                 {nextMonthContentList.slice(0, 3).map((content, index) => (
-                  <li key={`next-${content.id}-${index}`}>**{content.title}** ({content.duration} min)</li>
+                  <li key={`next-${content.id}-${index}`}>**{content.title}**</li>
                 ))}
               </ul>
             </>
@@ -849,11 +849,15 @@ export default function App() {
     const planRef = doc(dbService, 'artifacts', APP_ID, 'users', authUid, 'leadership_plan', 'roadmap');
 
     const unsubscribe = onSnapshot(planRef, (docSnap) => {
-      // Only load from Firestore if userPlanData is null, allowing the "Start Over" button to work locally
-      if (docSnap.exists() && userPlanData === null) { 
-        setUserPlanData(docSnap.data());
-      } else if (!docSnap.exists() && userPlanData === null) {
-        setUserPlanData(null); // Still triggers PlanGenerator
+      // Logic: Only load from Firestore if userPlanData is null, allowing the "Start Over" button to work locally
+      // Once the "Start Over" button is pressed, userPlanData becomes null, and we check Firestore again.
+      // If the doc exists, we load it, otherwise we leave it null to show the PlanGenerator.
+      if (userPlanData === null) { 
+        if (docSnap.exists()) {
+            setUserPlanData(docSnap.data());
+        } else {
+            setUserPlanData(null); // Keep it null to show PlanGenerator
+        }
       }
     }, (e) => {
       console.error("Firestore Snapshot Error:", e);
