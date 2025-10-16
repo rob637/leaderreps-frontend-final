@@ -170,4 +170,37 @@ const App = ({ firebaseConfig, appId, initialAuthToken }) => {
     if (isLoading || !userId) {
         const handleManualLoad = () => {
             // DEBUG OVERRIDE: Set a temporary user ID to force the Plan Generator to load.
-            setUserId('DEBUG_USER_ID_OVER
+            setUserId('DEBUG_USER_ID_OVERRIDE');
+            setIsLoading(false);
+        };
+
+        return (
+            <div className="flex justify-center items-center h-screen bg-gray-50">
+                <div className="p-6 text-center text-gray-700">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-leader-accent mx-auto"></div>
+                    <p className="mt-4 font-semibold">Authenticating and loading LeaderReps data...</p>
+                    {/* UI Override Button */}
+                    <button
+                        onClick={handleManualLoad}
+                        className="mt-6 px-4 py-2 text-xs font-medium text-white bg-red-600 rounded-lg shadow-md hover:bg-red-700 transition"
+                    >
+                        Load App Anyway (Debug Override)
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50 font-sans">
+            {!userPlanData ? (
+                <PlanGenerator userId={userId} setPlanData={setUserPlanData} setIsLoading={setIsLoading} />
+            ) : (
+                <TrackerDashboard userId={userId} userPlanData={userPlanData} setUserPlanData={setUserPlanData} />
+            )}
+            <p className="fixed bottom-2 left-2 text-xs text-gray-400">User ID: {userId}</p>
+        </div>
+    );
+};
+
+export default App;
