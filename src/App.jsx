@@ -15,19 +15,54 @@ const LEADERSHIP_TIERS = [
   { id: 5, title: "Talent & Culture", icon: Briefcase, description: "Building high-performing teams and shaping culture (Tier 5)." },
 ];
 
+// EXPANDED AND AUGMENTED CONTENT LIBRARY with 'difficulty' added
 const SAMPLE_CONTENT_LIBRARY = [
-  { id: 'c1', tier: 1, skill: "EQ", title: "Video: Mastering Your Focus Word", type: "Video", duration: 10, url: "#" },
-  { id: 'c2', tier: 1, skill: "Self-Management", title: "Template: The Time-Audit Rep", type: "Template", duration: 20, url: "#" },
-  { id: 'c3', tier: 2, skill: "Feedback", title: "Micro-Challenge: Practice the CLEAR Framework", type: "Micro-Challenge", duration: 15, url: "#" },
-  { id: 'c4', tier: 2, skill: "Coaching", title: "Template: Effective 1:1 Agenda (Based on Direct's Agenda)", type: "Template", duration: 5, url: "#" },
-  { id: 'c5', tier: 2, skill: "Feedback", title: "Reading: The 5:1 Magic Ratio Explained", type: "Reading", duration: 10, url: "#" },
-  { id: 'c6', tier: 3, skill: "Delegation", title: "Case Study: Delegating vs. Dumping", type: "Case Study", duration: 25, url: "#" },
-  { id: 'c7', tier: 3, skill: "Accountability", title: "Worksheet: Setting CLEAR KPIs", type: "Template", duration: 20, url: "#" },
-  { id: 'c8', tier: 4, skill: "Vision", title: "Micro-Challenge: Write Your Team's 6-Month Vision", type: "Micro-Challenge", duration: 45, url: "#" },
-  { id: 'c9', tier: 4, skill: "Communication", title: "Video: Leading Change Management with Empathy", type: "Video", duration: 15, url: "#" },
-  { id: 'c10', tier: 5, skill: "Trust", title: "Reading: Lencioni's 5 Dysfunctions of a Team Summary", type: "Reading", duration: 10, url: "#" },
-  { id: 'c11', tier: 5, skill: "Culture", title: "Template: Talent Audit and Succession Planning", type: "Template", duration: 30, url: "#" },
+  // Tier 1: Self-Awareness & Management (EQ, Self-Management)
+  { id: 'c1', tier: 1, skill: "EQ", title: "Video: Mastering Your Focus Word (Intro)", type: "Video", duration: 10, difficulty: "Intro", url: "#" },
+  { id: 'c1-b', tier: 1, skill: "EQ", title: "Reading: The Three Levels of Listening (Core)", type: "Reading", duration: 15, difficulty: "Core", url: "#" },
+  { id: 'c1-c', tier: 1, skill: "EQ", title: "Template: Leadership Identity Statement Draft (Mastery)", type: "Template", duration: 25, difficulty: "Mastery", url: "#" },
+
+  { id: 'c2', tier: 1, skill: "Self-Management", title: "Template: The Time-Audit Rep (Core)", type: "Template", duration: 20, difficulty: "Core", url: "#" },
+  { id: 'c2-b', tier: 1, skill: "Self-Management", title: "Micro-Challenge: Blocking the Distractions (Intro)", type: "Micro-Challenge", duration: 5, difficulty: "Intro", url: "#" },
+  { id: 'c2-c', tier: 1, skill: "Self-Management", title: "Case Study: The Proactive vs. Reactive Leader (Mastery)", type: "Case Study", duration: 30, difficulty: "Mastery", url: "#" },
+
+  // Tier 2: People & Coaching (Feedback, Coaching)
+  { id: 'c3', tier: 2, skill: "Feedback", title: "Micro-Challenge: Practice the CLEAR Framework (Core)", type: "Micro-Challenge", duration: 15, difficulty: "Core", url: "#" },
+  { id: 'c3-b', tier: 2, skill: "Feedback", title: "Reading: The 5:1 Magic Ratio Explained (Intro)", type: "Reading", duration: 10, difficulty: "Intro", url: "#" },
+  { id: 'c3-c', tier: 2, skill: "Feedback", title: "Video: Redirecting a Defender Persona (Mastery)", type: "Video", duration: 20, difficulty: "Mastery", url: "#" },
+
+  { id: 'c4', tier: 2, skill: "Coaching", title: "Template: Effective 1:1 Agenda (Based on Direct's Agenda) (Core)", type: "Template", duration: 20, difficulty: "Core", url: "#" },
+  { id: 'c4-b', tier: 2, skill: "Coaching", title: "Video: Situational Leadership 101 (Intro)", type: "Video", duration: 15, difficulty: "Intro", url: "#" },
+  { id: 'c4-c', tier: 2, skill: "Coaching", title: "Worksheet: Delegating Development Goals (Mastery)", type: "Template", duration: 35, difficulty: "Mastery", url: "#" },
+
+  // Tier 3: Execution & Accountability (Delegation, Accountability)
+  { id: 'c6', tier: 3, skill: "Delegation", title: "Case Study: Delegating vs. Dumping (Core)", type: "Case Study", duration: 25, difficulty: "Core", url: "#" },
+  { id: 'c6-b', tier: 3, skill: "Delegation", title: "Reading: The 5 Levels of Initiative (Intro)", type: "Reading", duration: 10, difficulty: "Intro", url: "#" },
+  { id: 'c6-c', tier: 3, skill: "Delegation", title: "Micro-Challenge: Reversing the Monkey (Mastery)", type: "Micro-Challenge", duration: 15, difficulty: "Mastery", url: "#" },
+
+  { id: 'c7', tier: 3, skill: "Accountability", title: "Worksheet: Setting CLEAR KPIs (Core)", type: "Template", duration: 20, difficulty: "Core", url: "#" },
+  { id: 'c7-b', tier: 3, skill: "Accountability", title: "Video: The Accountability Ladder (Intro)", type: "Video", duration: 10, difficulty: "Intro", url: "#" },
+  { id: 'c7-c', tier: 3, skill: "Accountability", title: "Template: 90-Day Performance Improvement Plan Draft (Mastery)", type: "Template", duration: 40, difficulty: "Mastery", url: "#" },
+
+  // Tier 4: Communication & Vision (Vision, Communication)
+  { id: 'c8', tier: 4, skill: "Vision", title: "Micro-Challenge: Write Your Team's 6-Month Vision (Mastery)", type: "Micro-Challenge", duration: 45, difficulty: "Mastery", url: "#" },
+  { id: 'c8-b', tier: 4, skill: "Vision", title: "Reading: Why Start with 'Why' (Intro)", type: "Reading", duration: 10, difficulty: "Intro", url: "#" },
+  { id: 'c8-c', tier: 4, skill: "Vision", title: "Template: Cascading Goals Framework (Core)", type: "Template", duration: 25, difficulty: "Core", url: "#" },
+
+  { id: 'c9', tier: 4, skill: "Communication", title: "Video: Leading Change Management with Empathy (Core)", type: "Video", duration: 15, difficulty: "Core", url: "#" },
+  { id: 'c9-b', tier: 4, skill: "Communication", title: "Reading: The Pyramid Principle Basics (Intro)", type: "Reading", duration: 10, difficulty: "Intro", url: "#" },
+  { id: 'c9-c', tier: 4, skill: "Communication", title: "Case Study: Crisis Communication (Mastery)", type: "Case Study", duration: 30, difficulty: "Mastery", url: "#" },
+
+  // Tier 5: Talent & Culture (Trust, Culture)
+  { id: 'c10', tier: 5, skill: "Trust", title: "Reading: Lencioni's 5 Dysfunctions Summary (Intro)", type: "Reading", duration: 10, difficulty: "Intro", url: "#" },
+  { id: 'c10-b', tier: 5, skill: "Trust", title: "Micro-Challenge: Vulnerability Check-in (Core)", type: "Micro-Challenge", duration: 15, difficulty: "Core", url: "#" },
+  { id: 'c10-c', tier: 5, skill: "Trust", title: "Video: Rebuilding Trust with a Team (Mastery)", type: "Video", duration: 25, difficulty: "Mastery", url: "#" },
+
+  { id: 'c11', tier: 5, skill: "Culture", title: "Template: Talent Audit and Succession Planning (Mastery)", type: "Template", duration: 30, difficulty: "Mastery", url: "#" },
+  { id: 'c11-b', tier: 5, skill: "Culture", title: "Video: Defining Team Operating Principles (Core)", type: "Video", duration: 20, difficulty: "Core", url: "#" },
+  { id: 'c11-c', tier: 5, skill: "Culture", title: "Reading: Core Values vs. Aspirational Values (Intro)", type: "Reading", duration: 10, difficulty: "Intro", url: "#" },
 ];
+
 
 const REFLECTION_PROMPTS = {
   1: `Session 1: Which of the 5 Rules for Feedback do you struggle with the most, and what's your plan to hit the <strong>5:1 Magic Ratio</strong>?`,
@@ -50,16 +85,36 @@ const createUniqueItemSelector = (tierList) => {
         return item.id;
       }
     }
+    // Fallback to ensuring every single item is used at least once before repeating
     for (let id of allContentIds) {
       if (!selectedIds.has(id)) {
         selectedIds.add(id);
         return id;
       }
     }
+    // Reset pool if all unique content is used
+    if (selectedIds.size === allContentIds.length) {
+        selectedIds.clear();
+        return pool[0]?.id || allContentIds[0] || null;
+    }
     return null;
   };
   return addUniqueItem;
 };
+
+// NEW UTILITIES for Dynamic Content
+const getTargetDifficulty = (rating) => {
+  if (rating <= 3) return ["Intro", "Core"];
+  if (rating >= 8) return ["Mastery"];
+  return ["Core", "Mastery"];
+};
+
+const adjustDuration = (rating, baseDuration) => {
+  if (rating <= 3) return Math.ceil(baseDuration * 1.5); // Low Rating = More time for deep dive
+  if (rating >= 8) return Math.floor(baseDuration * 0.7); // High Rating = Less time for quick execution
+  return baseDuration;
+};
+// END NEW UTILITIES
 
 const generatePlanData = (assessment) => {
   const { managerStatus, goalPriorities, tierSelfRating } = assessment;
@@ -79,31 +134,67 @@ const generatePlanData = (assessment) => {
   const priorityList = Array.from(new Set([...goalPriorities, ...sortedRatings]));
 
   const plan = [];
+
+  // Create a content selector pool for *each* tier based on the user's rating for that tier
+  const contentPools = LEADERSHIP_TIERS.reduce((acc, tier) => {
+    const rating = tierSelfRating[tier.id];
+    const targetDifficulties = getTargetDifficulty(rating);
+    acc[tier.id] = SAMPLE_CONTENT_LIBRARY.filter(c => 
+      c.tier === tier.id && targetDifficulties.includes(c.difficulty)
+    );
+    return acc;
+  }, {});
+
+  // Fallback selector using original logic to ensure we always get content
+  const fallbackSelector = createUniqueItemSelector(priorityList);
+  
+  // Track used content globally to prevent immediate repeats
+  const usedContentIds = new Set();
+  
   let currentTierIndex = priorityList.findIndex(tier => tier === startTier);
   if (currentTierIndex === -1) currentTierIndex = 0;
 
-  const requiredTiers = priorityList;
-  let contentSelector = createUniqueItemSelector(requiredTiers);
-
   for (let month = 1; month <= 24; month++) {
-    let currentTier = requiredTiers[currentTierIndex];
+    let currentTier = priorityList[currentTierIndex];
 
     if ((month - 1) % 4 === 0 && month > 1) {
-      currentTierIndex = (currentTierIndex + 1) % requiredTiers.length;
-      currentTier = requiredTiers[currentTierIndex];
+      currentTierIndex = (currentTierIndex + 1) % priorityList.length;
+      currentTier = priorityList[currentTierIndex];
     } else if (month === 1) {
       currentTier = startTier;
     }
 
-    const requiredContentIds = [];
+    const tierRating = tierSelfRating[currentTier];
+    const tierContentPool = contentPools[currentTier];
+    const requiredContent = [];
+    
+    // 1. Prioritize selecting 4 content items from the curated, difficulty-matched pool
     for (let i = 0; i < 4; i++) {
-      let itemId = contentSelector();
-      if (!itemId) {
-        contentSelector = createUniqueItemSelector(requiredTiers);
-        itemId = contentSelector();
-      }
-      if (itemId) requiredContentIds.push(itemId);
+        // Find content in the specific pool that hasn't been used recently
+        const availableContent = tierContentPool.filter(c => !usedContentIds.has(c.id));
+        let selectedItem = availableContent.length > 0
+            ? availableContent[i % availableContent.length] // Cycle through available
+            : null;
+
+        if (selectedItem) {
+            requiredContent.push({ id: selectedItem.id, adjustedDuration: adjustDuration(tierRating, selectedItem.duration) });
+            usedContentIds.add(selectedItem.id);
+        } else {
+            // 2. Fallback to the original logic if the targeted pool is exhausted
+            let fallbackId = fallbackSelector();
+            if (fallbackId) {
+                const fallbackContent = SAMPLE_CONTENT_LIBRARY.find(c => c.id === fallbackId);
+                requiredContent.push({ id: fallbackContent.id, adjustedDuration: adjustDuration(tierRating, fallbackContent.duration) });
+                usedContentIds.add(fallbackId);
+            }
+        }
     }
+    
+    // Cleanup usedContentIds to prevent memory leak and allow repeats after 1 cycle
+    if (usedContentIds.size > (SAMPLE_CONTENT_LIBRARY.length / 2)) {
+        usedContentIds.clear();
+    }
+
 
     const tierData = LEADERSHIP_TIERS.find(t => t.id === currentTier);
     const themeIndex = (month - 1) % 4;
@@ -113,7 +204,8 @@ const generatePlanData = (assessment) => {
       month,
       tier: currentTier,
       theme: `${tierData.title}: Focus Rep ${themeIndex + 1}`,
-      requiredContentIds,
+      // Store the objects with adjusted duration
+      requiredContent: requiredContent, 
       status: 'To Do',
       reflectionText: null,
     });
@@ -273,10 +365,16 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
     setIsLoading(true);
     setMessage("Generating 24-month personalized plan...");
 
+    // Ensure ratings are integers before passing
+    const integerRatings = Object.entries(ratings).reduce((acc, [key, value]) => {
+        acc[parseInt(key)] = parseInt(value);
+        return acc;
+    }, {});
+
     const assessment = {
       managerStatus: status,
-      goalPriorities: goals,
-      tierSelfRating: ratings,
+      goalPriorities: goals.map(id => parseInt(id)),
+      tierSelfRating: integerRatings,
       initialAssessmentDate: new Date().toISOString(),
     };
 
@@ -362,7 +460,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
               />
             </div>
           ))}
-          <p className="text-xs text-gray-500 mt-2">Lower ratings will be prioritized in your early 'Reps'.</p>
+          <p className="text-xs text-gray-500 mt-2">Lower ratings will be prioritized, and **affect the difficulty/duration of your Reps**.</p>
         </div>
       </div>
 
@@ -491,7 +589,8 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
 
   const handleFeedbackLink = () => {
     const uniqueId = userId;
-    const feedbackUrl = `https://leaderrepspd.netlify.app/feedback_form.html?user=${uniqueId}&tier=${currentMonthPlan.tier}`;
+    const currentTier = currentMonthPlan.tier;
+    const feedbackUrl = `https://leaderrepspd.netlify.app/feedback_form.html?user=${uniqueId}&tier=${currentTier}`;
     prompt("Feedback Link (Copy and Share)", feedbackUrl);
   };
 
@@ -503,13 +602,33 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
       </div>
     );
   }
-
-  const { tier, theme, requiredContentIds } = currentMonthPlan;
+  
+  // NEW: Logic to process requiredContent and merge with SAMPLE_CONTENT_LIBRARY
+  const currentMonthContent = currentMonthPlan.requiredContent || [];
+  const contentList = useMemo(() => currentMonthContent.map(rep => {
+      const baseContent = SAMPLE_CONTENT_LIBRARY.find(c => c.id === rep.id);
+      if (!baseContent) return null;
+      return {
+          ...baseContent,
+          // Override the base duration with the personalized adjusted duration
+          duration: rep.adjustedDuration || baseContent.duration 
+      };
+  }).filter(Boolean), [currentMonthContent]);
+  
+  // NEW: Logic to process next month's content for display
+  const nextMonthContentReps = nextMonthPlan?.requiredContent || [];
+  const nextMonthContentList = useMemo(() => nextMonthContentReps.map(rep => 
+      SAMPLE_CONTENT_LIBRARY.find(c => c.id === rep.id)
+  ).filter(Boolean), [nextMonthContentReps]);
+  
+  // Old variable usage cleanup:
+  // const { tier, theme, requiredContentIds } = currentMonthPlan; // requiredContentIds is replaced by requiredContent
+  const { tier, theme } = currentMonthPlan;
+  
   const tierDetails = LEADERSHIP_TIERS.find(t => t.id === tier);
   const nextTierDetails = nextMonthPlan ? LEADERSHIP_TIERS.find(t => t.id === nextMonthPlan.tier) : null;
   const completedItems = plan.filter(p => p.status === 'Completed').length;
-  const contentList = useMemo(() => requiredContentIds.map(id => SAMPLE_CONTENT_LIBRARY.find(c => c.id === id)).filter(Boolean), [requiredContentIds]);
-
+  
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <TitleCard
@@ -572,7 +691,8 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
                   </div>
                   <div className="text-xs text-gray-500 flex items-center space-x-2">
                     <span className="px-2 py-0.5 bg-gray-200 rounded-full">{content.type}</span>
-                    <span className="px-2 py-0.5 bg-gray-200 rounded-full">{content.duration} min</span>
+                    <span className="px-2 py-0.5 bg-gray-200 rounded-full">**{content.duration} min**</span> 
+                    {/* **This is the adjusted duration!** */}
                   </div>
                 </a>
               ))}
@@ -607,8 +727,8 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
               <p className="text-sm text-gray-500 mt-1">Tier {nextMonthPlan.tier}: {nextTierDetails?.title}</p>
               <p className="mt-3 text-sm text-gray-600">Get ready for these core Reps:</p>
               <ul className="list-disc list-inside mt-2 space-y-1 text-sm text-gray-600">
-                {nextMonthPlan.requiredContentIds.slice(0, 3).map((id, index) => (
-                  <li key={`next-${id}-${index}`}>{SAMPLE_CONTENT_LIBRARY.find(c => c.id === id)?.title || `Resource ${index + 1}`}</li>
+                {nextMonthContentList.slice(0, 3).map((content, index) => (
+                  <li key={`next-${content.id}-${index}`}>{content.title}</li>
                 ))}
               </ul>
             </>
