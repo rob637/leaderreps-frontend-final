@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, setDoc, onSnapshot, updateDoc, writeBatch, query, collection, where, getDocs } from 'firebase/firestore';
-import { Home, CheckCircle, Target, Users, TrendingUp, Zap, Clock, Send, Eye, MessageSquare, Briefcase, BarChart3, RotateCcw } from 'lucide-react';
+import { getFirestore, doc, setDoc, onSnapshot, updateDoc, writeBatch } from 'firebase/firestore';
+import { Home, CheckCircle, Target, Users, TrendingUp, Zap, Clock, Send, Eye, MessageSquare, Briefcase } from 'lucide-react';
 
 // --- DATA STRUCTURES (Your Project Constants) ---
 const LEADERSHIP_TIERS = [
@@ -34,25 +34,22 @@ const REFLECTION_PROMPTS = {
     5: "Session 2: Reflect on your Leadership Identity Statement (LIS). What is your focus word, and how will it anchor your behavior this month?",
 };
 
-// --- HELPER FUNCTIONS (Simplified for integrity) ---
+// --- HELPER FUNCTIONS ---
 const createUniqueItemSelector = (tierList) => { /* ... logic ... */ return () => 'c1'; };
 const generatePlanData = (assessment) => { /* ... logic ... */ return [{ id: 'm1', month: 1, tier: 2, theme: 'Example Theme', requiredContentIds: ['c3', 'c4', 'c5'] }]; }; 
 
 
-// --- GLOBAL SERVICE VARIABLES (Defined by App Component) ---
+// --- GLOBAL SERVICE VARIABLES (Must be outside component) ---
 let app, db, auth;
 const APP_ID = "leaderreps-pd-plan"; // Fixed project ID
 
 
-// --- COMPONENTS (Placeholders for brevity/cleanliness) ---
-const TitleCard = ({ title, description, icon: Icon, color = 'leader-blue' }) => (
-    <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 border-${color}`}>
-        <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
-    </div>
-);
-const ReflectionModal = ({ isOpen, monthData, reflectionInput, setReflectionInput, onSubmit, onClose }) => { return isOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">Modal Content</div> : null; };
-const ScenarioModal = ({ isOpen, scenarioInput, setScenarioInput, onSubmit, onClose }) => { return isOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">Modal Content</div> : null; };
+// --- COMPONENTS (Placeholders for brevity) ---
+const TitleCard = ({ title, description, icon: Icon, color = 'leader-blue' }) => ( /* ... component code ... */ <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 border-${color}`}><h2 className="text-2xl font-bold text-gray-800">{title}</h2></div>);
+const ReflectionModal = ({ isOpen, monthData, reflectionInput, setReflectionInput, onSubmit, onClose }) => { /* ... component code ... */ return isOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">Modal Content</div> : null; };
+const ScenarioModal = ({ isOpen, scenarioInput, setScenarioInput, onSubmit, onClose }) => { /* ... component code ... */ return isOpen ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">Modal Content</div> : null; };
 const PlanGenerator = ({ userId, setPlanData, setIsLoading }) => { /* ... component code ... */ return <div className="p-8 max-w-5xl mx-auto"><TitleCard title="1:1 Plan Generator: Your LeaderReps Roadmap" description={`Welcome, ${userId}. Let's design your custom 24-month professional development plan based on the 4-session QuickStart course.`} icon={Zap} color="leader-accent" /></div>; };
+const TrackerDashboard = ({ userId, userPlanData, setUserPlanData }) => { /* ... component code ... */ return <div className="p-8 max-w-6xl mx-auto"><TitleCard title="Your LeaderReps Tracker Dashboard" description={`Welcome, ${userId}. Track your progress through the 24-Month Playground Roadmap.`} icon={Home} color="leader-blue" /></div>; };
 
 
 // --- MAIN APPLICATION COMPONENT ---
@@ -64,7 +61,7 @@ const App = ({ firebaseConfig, appId, initialAuthToken }) => {
     const [isInitialized, setIsInitialized] = useState(false);
 
 
-    // 1. Initialization (The definitive fix for the hang)
+    // 1. Initialization (Runs once when config is available)
     useEffect(() => {
         if (isInitialized) return;
 
@@ -97,7 +94,16 @@ const App = ({ firebaseConfig, appId, initialAuthToken }) => {
                 }
             };
             
+            // Safety net: Force the loading screen to disappear after 7 seconds
+            const hangTimeout = setTimeout(() => {
+                if (isLoading) {
+                    setError("Authentication hang detected. Check Firestore rules or network.");
+                    setIsLoading(false);
+                }
+            }, 7000); // 7 seconds timeout
+
             const unsubscribe = onAuthStateChanged(currentAuth, (user) => {
+                clearTimeout(hangTimeout); // <--- THIS LINE STOPS THE HANG TIMER
                 if (user) {
                     setUserId(user.uid);
                 } else {
@@ -107,15 +113,6 @@ const App = ({ firebaseConfig, appId, initialAuthToken }) => {
             });
 
             initializeAuth();
-            
-            // Set explicit timeout to prevent infinite hang (The Hang Fix)
-            const hangTimeout = setTimeout(() => {
-                if (isLoading) {
-                    setError("Authentication hang detected. Check Firestore rules or network.");
-                    setIsLoading(false);
-                }
-            }, 7000); // 7 seconds timeout
-
             return () => {
                 clearTimeout(hangTimeout);
                 unsubscribe();
@@ -147,6 +144,7 @@ const App = ({ firebaseConfig, appId, initialAuthToken }) => {
             }
             setIsLoading(false); // Authentication is complete, data check is done.
         }, (e) => {
+            // Permissions error that we were seeing earlier
             if (e.code === 'permission-denied') {
                 setError("Application Error: Failed to load plan: Missing or insufficient permissions. Ensure your Firestore Security Rules are correct.");
             } else {
