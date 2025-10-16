@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot, updateDoc, writeBatch } from 'firebase/firestore';
 import { Home, CheckCircle, Target, Users, TrendingUp, Zap, Clock, Send, Eye, MessageSquare, Briefcase } from 'lucide-react';
 
-/* =========================
-   DATA STRUCTURES / CONSTANTS
-   ========================= */
+/* ----------------------------------------------------------------------------
+   PROJECT CONSTANTS
+---------------------------------------------------------------------------- */
+
 const LEADERSHIP_TIERS = [
   { id: 1, title: 'Self-Awareness & Management', icon: Eye, description: 'Mastering your own strengths, motivations, and resilience (Tier 1).' },
   { id: 2, title: 'People & Coaching', icon: Users, description: 'Giving effective feedback and developing direct reports (Tier 2).' },
@@ -31,16 +32,17 @@ const SAMPLE_CONTENT_LIBRARY = [
 
 const REFLECTION_PROMPTS = {
   1: `Session 1: Which of the 5 Rules for Feedback do you struggle with the most, and what's your plan to hit the <strong>5:1 Magic Ratio</strong>?`,
-  4: `Session 4: Reflect on vulnerability. Where have you struggled to lead with vulnerability, and what action will you commit to next?`,
   3: `Session 3: What's working well in your 1:1s, and what challenge are you facing with your direct's agenda?`,
+  4: `Session 4: Reflect on vulnerability. Where have you struggled to lead with vulnerability, and what action will you commit to next?`,
   5: `Session 2: Reflect on your Leadership Identity Statement (LIS). What is your <strong>focus word</strong>, and how will it anchor your behavior this month?`,
 };
 
-const APP_ID = 'leaderreps-pd-plan';
+const APP_ID = 'leaderreps-pd-plan'; // keep fixed unless you intentionally want to change collection path
 
-/* =========================
+/* ----------------------------------------------------------------------------
    HELPERS
-   ========================= */
+---------------------------------------------------------------------------- */
+
 const createUniqueItemSelector = (tierList) => {
   const selectedIds = new Set();
   const allContentIds = SAMPLE_CONTENT_LIBRARY.map((c) => c.id);
@@ -89,12 +91,13 @@ const generatePlanData = (assessment) => {
     .map(([tierId]) => parseInt(tierId, 10));
 
   const priorityList = Array.from(new Set([...goalPriorities, ...sortedRatings]));
-
   const plan = [];
   let currentTierIndex = priorityList.findIndex((tier) => tier === startTier);
   if (currentTierIndex === -1) currentTierIndex = 0;
 
-  const requiredTiers = priorityList;
+  const requiredTiers = priorityList.length ? priorityList : [startTier];
+
+  // persistent content selector
   let contentSelector = createUniqueItemSelector(requiredTiers);
 
   for (let month = 1; month <= 24; month++) {
@@ -134,9 +137,10 @@ const generatePlanData = (assessment) => {
   return plan;
 };
 
-/* =========================
+/* ----------------------------------------------------------------------------
    UI SUB-COMPONENTS
-   ========================= */
+---------------------------------------------------------------------------- */
+
 function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
   const palette = {
     'leader-blue': { border: 'border-leader-blue', text: 'text-leader-blue' },
@@ -168,7 +172,6 @@ function ReflectionModal({ isOpen, monthData, reflectionInput, setReflectionInpu
           <MessageSquare className="w-5 h-5 mr-2 text-leader-accent" />
           Monthly Reflection: Month {monthData.month}
         </h3>
-
         <p className="text-sm font-semibold text-gray-700 mb-4">
           <strong>Workout Requirement:</strong> Please complete this reflection based on the QuickStart workbook before marking the month complete.
         </p>
@@ -184,7 +187,7 @@ function ReflectionModal({ isOpen, monthData, reflectionInput, setReflectionInpu
           placeholder="Type your reflection here. Be honest, clear is kind!"
           rows="6"
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-leader-accent focus:border-leader-accent transition duration-150"
-        />
+        ></textarea>
 
         <div className="mt-6 flex justify-end space-x-3">
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
@@ -200,7 +203,6 @@ function ReflectionModal({ isOpen, monthData, reflectionInput, setReflectionInpu
             Submit Reflection & Complete
           </button>
         </div>
-
         {reflectionInput.length < 50 && <p className="text-xs text-red-500 mt-2 text-right">Reflection must be at least 50 characters.</p>}
       </div>
     </div>
@@ -217,9 +219,7 @@ function ScenarioModal({ isOpen, scenarioInput, setScenarioInput, onSubmit, onCl
           <Users className="w-5 h-5 mr-2 text-leader-accent" />
           Leaders Circle Prep: Scenario Submission
         </h3>
-        <p className="text-sm text-gray-700 mb-4">
-          Briefly describe a situation in which you struggled to show up as your best leadership self, or describe an upcoming situation you are unsure about.
-        </p>
+        <p className="text-sm text-gray-700 mb-4">Briefly describe a situation in which you struggled to show up as your best leadership self, or describe an upcoming situation you are unsure about.</p>
 
         <textarea
           value={scenarioInput || ''}
@@ -227,7 +227,7 @@ function ScenarioModal({ isOpen, scenarioInput, setScenarioInput, onSubmit, onCl
           placeholder="Describe your scenario here (e.g., 'A direct report challenged me using the Defender Persona after redirecting feedback...')."
           rows="8"
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-leader-accent focus:border-leader-accent transition duration-150"
-        />
+        ></textarea>
 
         <div className="mt-6 flex justify-end space-x-3">
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
@@ -243,17 +243,13 @@ function ScenarioModal({ isOpen, scenarioInput, setScenarioInput, onSubmit, onCl
             Submit Scenario for Review
           </button>
         </div>
-
         {scenarioInput.length < 50 && <p className="text-xs text-red-500 mt-2 text-right">Scenario must be at least 50 characters.</p>}
       </div>
     </div>
   );
 }
 
-/* =========================
-   PLAN GENERATOR
-   ========================= */
-function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
+function PlanGenerator({ userId, setPlanData, setIsLoading, db, auth }) {
   const [status, setStatus] = useState('New Manager');
   const [goals, setGoals] = useState([]);
   const [ratings, setRatings] = useState({});
@@ -275,6 +271,10 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
   const handleGenerate = async () => {
     if (goals.length === 0) {
       setMessage('Please select at least one core leadership goal.');
+      return;
+    }
+    if (!userId || !auth?.currentUser) {
+      setMessage('Connecting to Firebase... please try again in a moment once your User ID appears.');
       return;
     }
 
@@ -310,7 +310,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
     <div className="p-8 max-w-5xl mx-auto">
       <TitleCard
         title="1:1 Plan Generator: Your LeaderReps Roadmap"
-        description={`Welcome, ${userId}. Let's design your custom 24-month professional development plan based on the 4-session QuickStart course.`}
+        description={`Welcome, ${userId || '…'}. Let's design your custom 24-month professional development plan based on the 4-session QuickStart course.`}
         icon={Zap}
         color="leader-accent"
       />
@@ -337,7 +337,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
                   checked={goals.includes(tier.id)}
                   onChange={() => toggleGoal(tier.id)}
                   disabled={!goals.includes(tier.id) && goals.length >= 3}
-                  className="h-4 w-4 border-gray-300 rounded focus:ring-leader-accent"
+                  className="h-4 w-4 text-leader-accent border-gray-300 rounded focus:ring-leader-accent"
                 />
                 <label htmlFor={`goal-${tier.id}`} className="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
                   {tier.title}
@@ -362,7 +362,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
                 max="10"
                 value={ratings[tier.id] || 5}
                 onChange={(e) => setRatings({ ...ratings, [tier.id]: parseInt(e.target.value, 10) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-leader-accent"
               />
             </div>
           ))}
@@ -386,10 +386,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
   );
 }
 
-/* =========================
-   TRACKER DASHBOARD
-   ========================= */
-function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
+function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID, auth }) {
   const [isReflectionModalOpen, setIsReflectionModalOpen] = useState(false);
   const [reflectionInput, setReflectionInput] = useState('');
   const [isScenarioModalOpen, setIsScenarioModalOpen] = useState(false);
@@ -421,7 +418,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
         plan: updatedPlan,
       }));
     },
-    [db, userId, userPlanData.plan, setUserPlanData]
+    [db, APP_ID, userId, userPlanData.plan, setUserPlanData]
   );
 
   const markComplete = useCallback(
@@ -430,7 +427,6 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
         setMessage('Firestore not initialized.');
         return;
       }
-
       const monthData = plan.find((p) => p.month === month);
 
       if (!skipReflectionCheck && monthData && monthData.reflectionText === null) {
@@ -459,26 +455,23 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
         setMessage(`Error: Could not update plan: ${e.message}`);
       }
     },
-    [db, userId, plan]
+    [db, APP_ID, userId, plan]
   );
 
-  const handleSubmitReflection = useCallback(
-    async (month) => {
-      if (reflectionInput.length < 50 || !currentMonthPlan) return;
+  const handleSubmitReflection = useCallback(async () => {
+    if (reflectionInput.length < 50 || !currentMonthPlan) return;
 
-      setIsReflectionModalOpen(false);
-      setMessage('Saving reflection...');
-      try {
-        await updatePlanReflectionLocal(month, reflectionInput);
-        await markComplete(month, { skipReflectionCheck: true });
-        setReflectionInput('');
-      } catch (error) {
-        console.error('Error submitting reflection:', error);
-        setMessage(`Error: Failed to save reflection and complete month: ${error.message}`);
-      }
-    },
-    [reflectionInput, currentMonthPlan, updatePlanReflectionLocal, markComplete]
-  );
+    setIsReflectionModalOpen(false);
+    setMessage('Saving reflection...');
+    try {
+      await updatePlanReflectionLocal(currentMonthPlan.month, reflectionInput);
+      await markComplete(currentMonthPlan.month, { skipReflectionCheck: true });
+      setReflectionInput('');
+    } catch (error) {
+      console.error('Error submitting reflection:', error);
+      setMessage(`Error: Failed to save reflection and complete month: ${error.message}`);
+    }
+  }, [reflectionInput, currentMonthPlan, updatePlanReflectionLocal, markComplete]);
 
   const handleScenarioSubmit = useCallback(async () => {
     if (scenarioInput.length < 50) return;
@@ -504,11 +497,13 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
       console.error('Error submitting scenario:', e);
       setMessage(`Error submitting scenario: ${e.message}`);
     }
-  }, [scenarioInput, userId, currentMonthPlan, db]);
+  }, [scenarioInput, userId, currentMonthPlan, db, APP_ID]);
 
   const handleFeedbackLink = () => {
-    const feedbackUrl = `https://leaderrepspd.netlify.app/feedback_form.html?user=${userId}&tier=${currentMonthPlan.tier}`;
-    // Basic copy prompt for now:
+    const uniqueId = userId;
+    const feedbackUrl = `https://leaderrepspd.netlify.app/feedback_form.html?user=${uniqueId}&tier=${currentMonthPlan.tier}`;
+    // simple copy prompt; in your real app replace with a better UI copy
+    // eslint-disable-next-line no-alert
     prompt('Feedback Link (Copy and Share)', feedbackUrl);
   };
 
@@ -524,18 +519,12 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
   const { tier, theme, requiredContentIds } = currentMonthPlan;
   const tierDetails = LEADERSHIP_TIERS.find((t) => t.id === tier);
   const nextTierDetails = nextMonthPlan ? LEADERSHIP_TIERS.find((t) => t.id === nextMonthPlan.tier) : null;
-
   const completedItems = plan.filter((p) => p.status === 'Completed').length;
   const contentList = useMemo(() => requiredContentIds.map((id) => SAMPLE_CONTENT_LIBRARY.find((c) => c.id === id)).filter(Boolean), [requiredContentIds]);
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      <TitleCard
-        title="Your LeaderReps Tracker Dashboard"
-        description={`Welcome, ${userId}. Track your progress through the 24-Month Playground Roadmap.`}
-        icon={Home}
-        color="leader-blue"
-      />
+      <TitleCard title="Your LeaderReps Tracker Dashboard" description={`Welcome, ${userId}. Track your progress through the 24-Month Playground Roadmap.`} icon={Home} color="leader-blue" />
 
       <div className="mt-8 bg-white p-6 rounded-xl shadow-lg">
         <div className="flex justify-between items-center mb-4">
@@ -543,7 +532,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
           <span className="text-xl font-bold text-leader-accent">{progress}% Complete</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
-          <div className="h-3 rounded-full bg-leader-accent transition-all duration-500" style={{ width: `${progress}%` }} />
+          <div className="h-3 rounded-full bg-leader-accent transition-all duration-500" style={{ width: `${progress}%` }}></div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -560,7 +549,6 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
             <span className="font-medium text-gray-700">Completed Reps: {completedItems}</span>
           </div>
         </div>
-
         {message && <p className={`mt-4 text-center font-semibold ${message.startsWith('Error') ? 'text-red-500' : 'text-green-600'}`}>{message}</p>}
       </div>
 
@@ -599,7 +587,6 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
                 Complete Monthly Workout & Reflect
               </button>
             )}
-
             {currentMonthPlan.reflectionText && (
               <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
                 <p className="text-sm font-semibold text-green-700">Reflection Saved: </p>
@@ -612,7 +599,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
         <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-leader-blue">
           <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
             <TrendingUp className="w-5 h-5 text-leader-blue" />
-            Next Month&apos;s Focus (M{currentMonth + 1})
+            Next Month's Focus (M{currentMonth + 1})
           </h3>
           {nextMonthPlan ? (
             <>
@@ -654,20 +641,13 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
   );
 }
 
-/* =========================
+/* ----------------------------------------------------------------------------
    MAIN APP
-   ========================= */
-export default function App({ firebaseConfig: propFirebaseConfig, initialAuthToken }) {
-  const [dbService, setDbService] = useState(null);
-  const [authService, setAuthService] = useState(null);
-  const [userId, setUserId] = useState(null);
-  const [userPlanData, setUserPlanData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+---------------------------------------------------------------------------- */
 
-  // Fallback to Vite env vars if no props provided
-  const envFirebaseConfig = {
+function App({ firebaseConfig: propConfig, initialAuthToken: propToken }) {
+  // resolved config: props or Vite env vars (VITE_* are exposed in client)
+  const envConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
     projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
@@ -676,28 +656,49 @@ export default function App({ firebaseConfig: propFirebaseConfig, initialAuthTok
     appId: import.meta.env.VITE_FIREBASE_APP_ID,
     measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
   };
-  const firebaseConfig = propFirebaseConfig ?? envFirebaseConfig;
+  const resolvedConfig = propConfig ?? envConfig;
+  const initialAuthToken = propToken ?? import.meta.env.VITE_INITIAL_AUTH_TOKEN;
 
-  /* 1) Initialize Firebase once */
+  const [dbService, setDbService] = useState(null);
+  const [authService, setAuthService] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [userPlanData, setUserPlanData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const initOnce = useRef(false);
+
+  // One-time init for Firebase + Auth
   useEffect(() => {
-    if (isInitialized) return;
+    if (initOnce.current) return;
+    initOnce.current = true;
 
-    if (!firebaseConfig || !firebaseConfig.projectId) {
+    if (!resolvedConfig || !resolvedConfig.projectId) {
       setError('Firebase is not configured. Ensure credentials are passed correctly.');
       setIsLoading(false);
       return;
     }
 
     try {
-      const appInstance = initializeApp(firebaseConfig);
+      const appInstance = initializeApp(resolvedConfig);
       const dbInstance = getFirestore(appInstance);
       const authInstance = getAuth(appInstance);
 
       setDbService(dbInstance);
       setAuthService(authInstance);
-      setIsInitialized(true);
 
-      const initializeAuth = async () => {
+      const hangTimeout = setTimeout(() => {
+        setError('Authentication hang detected. Check Firebase Auth settings (enable Anonymous) and Authorized Domains.');
+        setIsLoading(false);
+      }, 7000);
+
+      const unsub = onAuthStateChanged(authInstance, (user) => {
+        clearTimeout(hangTimeout);
+        setUserId(user ? user.uid : null);
+        // Loading continues until snapshot resolves below
+      });
+
+      (async () => {
         try {
           if (initialAuthToken) {
             await signInWithCustomToken(authInstance, initialAuthToken);
@@ -709,25 +710,10 @@ export default function App({ firebaseConfig: propFirebaseConfig, initialAuthTok
           setError(`Authentication Failed: ${e.message}`);
           setIsLoading(false);
         }
-      };
+      })();
 
-      const hangTimeout = setTimeout(() => {
-        if (isLoading) {
-          setError('Authentication hang detected. Check Firestore rules or network.');
-          setIsLoading(false);
-        }
-      }, 7000);
-
-      const unsubscribe = onAuthStateChanged(authInstance, (user) => {
-        clearTimeout(hangTimeout);
-        setUserId(user ? user.uid : null);
-        // Plan snapshot effect will set isLoading false
-      });
-
-      initializeAuth();
       return () => {
-        clearTimeout(hangTimeout);
-        unsubscribe();
+        unsub();
       };
     } catch (e) {
       if (e.code !== 'app/duplicate-app') {
@@ -736,11 +722,11 @@ export default function App({ firebaseConfig: propFirebaseConfig, initialAuthTok
         setIsLoading(false);
       }
     }
-  }, [firebaseConfig, initialAuthToken, isInitialized]);
+  }, [resolvedConfig, initialAuthToken]);
 
-  /* 2) Plan data listener */
+  // Plan snapshot (only when authed)
   useEffect(() => {
-    if (!userId || !dbService || !isInitialized) return;
+    if (!userId || !dbService || !authService || !authService.currentUser) return;
 
     const planRef = doc(dbService, 'artifacts', APP_ID, 'users', userId, 'leadership_plan', 'roadmap');
 
@@ -766,9 +752,29 @@ export default function App({ firebaseConfig: propFirebaseConfig, initialAuthTok
     );
 
     return () => unsubscribe();
-  }, [userId, isInitialized, dbService]);
+  }, [userId, dbService, authService]);
 
-  /* 3) Error and loading gates */
+  const handleManualLoad = useCallback(() => {
+    // Show the UI immediately
+    setIsLoading(false);
+
+    if (authService) {
+      signInAnonymously(authService)
+        .then((cred) => {
+          // onAuthStateChanged will set the real UID
+          if (!userId) setUserId(cred.user?.uid ?? 'DEBUG_USER_ID');
+        })
+        .catch((e) => {
+          console.error('Anon sign-in failed (debug):', e);
+          setError(`Auth failed: ${e.message}`);
+          if (!userId) setUserId('DEBUG_USER_ID');
+        });
+    } else {
+      console.warn('Auth not initialized yet; staying in debug mode.');
+      if (!userId) setUserId('DEBUG_USER_ID');
+    }
+  }, [authService, userId]);
+
   if (error) {
     return (
       <div className="p-8 text-center text-red-700 bg-red-100 rounded-lg max-w-lg mx-auto mt-12">
@@ -778,26 +784,30 @@ export default function App({ firebaseConfig: propFirebaseConfig, initialAuthTok
     );
   }
 
-  if (isLoading || !userId) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50">
         <div className="p-6 text-center text-gray-700">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-leader-accent mx-auto" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-leader-accent mx-auto"></div>
           <p className="mt-4 font-semibold">Authenticating and loading LeaderReps data...</p>
+          <button onClick={handleManualLoad} className="mt-6 px-4 py-2 text-xs font-medium text-white bg-red-600 rounded-lg shadow-md hover:bg-red-700 transition">
+            Load App Anyway (Debug Override)
+          </button>
         </div>
       </div>
     );
   }
 
-  /* 4) App */
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       {!userPlanData ? (
-        <PlanGenerator userId={userId} setPlanData={setUserPlanData} setIsLoading={setIsLoading} db={dbService} />
+        <PlanGenerator userId={userId} setPlanData={setUserPlanData} setIsLoading={setIsLoading} db={dbService} auth={authService} />
       ) : (
-        <TrackerDashboard userId={userId} userPlanData={userPlanData} setUserPlanData={setUserPlanData} db={dbService} />
+        <TrackerDashboard userId={userId} userPlanData={userPlanData} setUserPlanData={setUserPlanData} db={dbService} APP_ID={APP_ID} auth={authService} />
       )}
-      <p className="fixed bottom-2 left-2 text-xs text-gray-400">User ID: {userId}</p>
+      <p className="fixed bottom-2 left-2 text-xs text-gray-400">User ID: {userId || '…'}</p>
     </div>
   );
 }
+
+export default App;
