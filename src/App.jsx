@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot, updateDoc, writeBatch } from 'firebase/firestore';
-import { Home, CheckCircle, Target, Users, TrendingUp, Zap, Clock, Send, Eye, MessageSquare, Briefcase } from 'lucide-react';
+import { Home, CheckCircle, Target, Users, TrendingUp, Zap, Clock, Send, Eye, MessageSquare, Briefcase, RefreshCw } from 'lucide-react';
+// 1. IMPORT LOGO
+import LeaderRepsLogo from './image_853dcd.png'; 
 
 /* =========================
    PROJECT CONSTANTS / DATA
@@ -102,7 +104,7 @@ const createUniqueItemSelector = (tierList) => {
   return addUniqueItem;
 };
 
-// NEW UTILITIES for Dynamic Content
+// UTILITIES for Dynamic Content
 const getTargetDifficulty = (rating) => {
   if (rating <= 3) return ["Intro", "Core"];
   if (rating >= 8) return ["Mastery"];
@@ -219,6 +221,7 @@ const APP_ID = "leaderreps-pd-plan";
 /* =========================
    UI SUB-COMPONENTS
    ========================= */
+// 1. UPDATED TITLE CARD TO ACCEPT LOGO
 function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
   const palette = {
     'leader-blue': { border: 'border-leader-blue', text: 'text-leader-blue' },
@@ -228,11 +231,13 @@ function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
 
   return (
     <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 ${border}`}>
-      <div className="flex items-center space-x-4">
-        <Icon className={`w-8 h-8 ${text}`} />
-        <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+      <div className="flex items-start space-x-4">
+        <img src={LeaderRepsLogo} alt="LeaderReps Logo" className="w-32 h-auto" />
       </div>
-      <p className="mt-2 text-sm text-gray-500">{description}</p>
+      <div className="mt-4">
+          <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+          <p className="mt-2 text-sm text-gray-500">{description}</p>
+      </div>
     </div>
   );
 }
@@ -593,6 +598,13 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
     const feedbackUrl = `https://leaderrepspd.netlify.app/feedback_form.html?user=${uniqueId}&tier=${currentTier}`;
     prompt("Feedback Link (Copy and Share)", feedbackUrl);
   };
+  
+  // 2. NEW: Function to force the app back to the Plan Generator
+  const handleStartOver = () => {
+      if (window.confirm("Are you sure you want to start a NEW plan? This will overwrite your existing roadmap upon completion, but keep your old data in Firestore.")) {
+          setUserPlanData(null);
+      }
+  };
 
   if (!currentMonthPlan) {
     return (
@@ -603,7 +615,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
     );
   }
   
-  // NEW: Logic to process requiredContent and merge with SAMPLE_CONTENT_LIBRARY
+  // Logic to process requiredContent and merge with SAMPLE_CONTENT_LIBRARY
   const currentMonthContent = currentMonthPlan.requiredContent || [];
   const contentList = useMemo(() => currentMonthContent.map(rep => {
       const baseContent = SAMPLE_CONTENT_LIBRARY.find(c => c.id === rep.id);
@@ -615,14 +627,12 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
       };
   }).filter(Boolean), [currentMonthContent]);
   
-  // NEW: Logic to process next month's content for display
+  // 3. FIX: Logic to correctly process next month's content for display
   const nextMonthContentReps = nextMonthPlan?.requiredContent || [];
   const nextMonthContentList = useMemo(() => nextMonthContentReps.map(rep => 
       SAMPLE_CONTENT_LIBRARY.find(c => c.id === rep.id)
   ).filter(Boolean), [nextMonthContentReps]);
-  
-  // Old variable usage cleanup:
-  // const { tier, theme, requiredContentIds } = currentMonthPlan; // requiredContentIds is replaced by requiredContent
+
   const { tier, theme } = currentMonthPlan;
   
   const tierDetails = LEADERSHIP_TIERS.find(t => t.id === tier);
@@ -637,7 +647,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
         icon={Home}
         color="leader-blue"
       />
-
+    
       <div className="mt-8 bg-white p-6 rounded-xl shadow-lg">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-bold text-gray-800">Roadmap Progress: Month {currentMonth} of 24</h3>
@@ -647,7 +657,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
           <div className="h-3 rounded-full bg-leader-accent transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <button
             onClick={() => setIsScenarioModalOpen(true)}
             className="flex items-center justify-center p-3 text-sm font-semibold text-white bg-leader-blue rounded-lg hover:bg-blue-800 transition shadow-md"
@@ -666,6 +676,14 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
             <Clock className="w-4 h-4 text-leader-blue" />
             <span className='font-medium text-gray-700'>Completed Reps: {completedItems}</span>
           </div>
+           {/* 2. NEW: Start Over Button */}
+          <button
+            onClick={handleStartOver}
+            className="flex items-center justify-center p-3 text-sm font-semibold text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300 transition shadow-md"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Start Over
+          </button>
         </div>
         {message && <p className={`mt-4 text-center font-semibold ${message.startsWith('Error') ? 'text-red-500' : 'text-green-600'}`}>{message}</p>}
       </div>
@@ -692,7 +710,6 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
                   <div className="text-xs text-gray-500 flex items-center space-x-2">
                     <span className="px-2 py-0.5 bg-gray-200 rounded-full">{content.type}</span>
                     <span className="px-2 py-0.5 bg-gray-200 rounded-full">**{content.duration} min**</span> 
-                    {/* **This is the adjusted duration!** */}
                   </div>
                 </a>
               ))}
@@ -726,9 +743,10 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
               <p className="text-md font-semibold text-gray-700">{nextMonthPlan.theme}</p>
               <p className="text-sm text-gray-500 mt-1">Tier {nextMonthPlan.tier}: {nextTierDetails?.title}</p>
               <p className="mt-3 text-sm text-gray-600">Get ready for these core Reps:</p>
+              {/* 3. FIX: Displaying next month's content */}
               <ul className="list-disc list-inside mt-2 space-y-1 text-sm text-gray-600">
                 {nextMonthContentList.slice(0, 3).map((content, index) => (
-                  <li key={`next-${content.id}-${index}`}>{content.title}</li>
+                  <li key={`next-${content.id}-${index}`}>**{content.title}** ({content.duration} min)</li>
                 ))}
               </ul>
             </>
@@ -831,10 +849,11 @@ export default function App() {
     const planRef = doc(dbService, 'artifacts', APP_ID, 'users', authUid, 'leadership_plan', 'roadmap');
 
     const unsubscribe = onSnapshot(planRef, (docSnap) => {
-      if (docSnap.exists()) {
+      // Only load from Firestore if userPlanData is null, allowing the "Start Over" button to work locally
+      if (docSnap.exists() && userPlanData === null) { 
         setUserPlanData(docSnap.data());
-      } else {
-        setUserPlanData(null); // Triggers PlanGenerator
+      } else if (!docSnap.exists() && userPlanData === null) {
+        setUserPlanData(null); // Still triggers PlanGenerator
       }
     }, (e) => {
       console.error("Firestore Snapshot Error:", e);
@@ -847,7 +866,7 @@ export default function App() {
     });
 
     return () => unsubscribe();
-  }, [initialized, dbService, authUid]);
+  }, [initialized, dbService, authUid, userPlanData]);
 
   if (error) {
     return (
