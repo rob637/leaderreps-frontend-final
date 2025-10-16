@@ -3,23 +3,25 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 
-// --- START FIREBASE CONFIGURATION (LIVE KEYS) ---
+// --- START FIREBASE CONFIGURATION (SECURE ACCESS) ---
+// Access environment variables securely injected by Netlify/Vite
 const liveFirebaseConfig = {
-  apiKey: "AIzaSyD6eHDIDgC6NEIHLxMpQSe9l8X9MjKV6gk",
-  authDomain: "leaderreps-pd-plan.firebaseapp.com",
-  projectId: "leaderreps-pd-plan",
-  storageBucket: "leaderreps-pd-plan.firebasestorage.app",
-  messagingSenderId: "931832203209",
-  appId: "1:931832203209:web:a81dafbeb5b5da42b14a18",
-  measurementId: "G-1N7B7HQJZM"
+  // We check for __firebase_config first (Canvas environment) and then fall back to VITE_ keys (Netlify environment)
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Define necessary context variables for the App component
 const firebaseConfig = liveFirebaseConfig;
-const appId = liveFirebaseConfig.projectId; 
+const appId = import.meta.env.VITE_FIREBASE_PROJECT_ID; // Use projectId for the AppId
 const initialAuthToken = null; 
 
-// The App.jsx component will now receive these as props, guaranteeing initialization.
+// We keep the window assignments primarily for backward compatibility with the original Canvas environment.
 window.__firebase_config = JSON.stringify(firebaseConfig);
 window.__app_id = appId;
 window.__initial_auth_token = initialAuthToken;

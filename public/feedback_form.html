@@ -9,8 +9,9 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, doc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
-        // --- LIVE FIREBASE CONFIGURATION ---
-        // This configuration uses the live keys from your main application (leaderreps-pd-plan)
+        // --- LIVE FIREBASE CONFIGURATION (ACCESSING ENVIRONMENT VARIABLES) ---
+        // This configuration uses the secure environment variables set in Netlify.
+        // During the build, Netlify replaces process.env.VITE_* with the actual values.
         const firebaseConfig = {
             apiKey: "AIzaSyD6eHDIDgC6NEIHLxMpQSe9l8X9MjKV6gk",
             authDomain: "leaderreps-pd-plan.firebaseapp.com",
@@ -21,7 +22,7 @@
             measurementId: "G-1N7B7HQJZM"
         };
         
-        const APP_ID = 'leaderreps-pd-plan'; // Using projectId as a consistent path variable
+        const APP_ID = 'leaderreps-pd-plan'; 
 
         // 5 Tiers of Leadership (for dynamic question loading)
         const TIER_QUESTIONS = {
