@@ -73,7 +73,7 @@ const generatePlanData = (assessment) => {
 
   const sortedRatings = Object.entries(tierSelfRating)
     .sort(([, a], [, b]) => a - b)
-    .map(([tierId]) => parseInt(tierId));
+    .map(([tierId]) => parseInt(tierId, 10));
 
   const priorityList = Array.from(new Set([...goalPriorities, ...sortedRatings]));
 
@@ -82,6 +82,8 @@ const generatePlanData = (assessment) => {
   if (currentTierIndex === -1) currentTierIndex = 0;
 
   const requiredTiers = priorityList;
+
+  // Create the selector outside the loop so we don't repeat the same items each month
   let contentSelector = createUniqueItemSelector(requiredTiers);
 
   for (let month = 1; month <= 24; month++) {
@@ -98,6 +100,7 @@ const generatePlanData = (assessment) => {
     for (let i = 0; i < 4; i++) {
       let itemId = contentSelector();
       if (!itemId) {
+        // Exhaustion: reset and allow repeats
         contentSelector = createUniqueItemSelector(requiredTiers);
         itemId = contentSelector();
       }
@@ -125,6 +128,7 @@ const generatePlanData = (assessment) => {
 const APP_ID = "leaderreps-pd-plan"; // Fixed project ID
 
 // --- COMPONENT SUB-MODULES (Defined outside App for valid React element type) ---
+
 function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
   const palette = {
     'leader-blue': { border: 'border-leader-blue', text: 'text-leader-blue' },
@@ -241,7 +245,9 @@ function ScenarioModal({ isOpen, scenarioInput, setScenarioInput, onSubmit, onCl
   );
 }
 
-// Plan Generator
+/**
+ * The Plan Generator component (simulates the 1-on-1 session).
+ */
 function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
   const [status, setStatus] = useState('New Manager');
   const [goals, setGoals] = useState([]);
@@ -280,7 +286,14 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
     };
 
     const plan = generatePlanData(assessment);
-    const payload = { ownerUid: userId, assessment, plan, currentMonth: 1, lastUpdate: new Date().toISOString() };
+
+    const payload = {
+      ownerUid: userId,
+      assessment,
+      plan,
+      currentMonth: 1,
+      lastUpdate: new Date().toISOString()
+    };
 
     try {
       const planRef = doc(db, 'artifacts', APP_ID, 'users', userId, 'leadership_plan', 'roadmap');
@@ -307,7 +320,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
       />
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Status */}
+        {/* Status Section */}
         <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-leader-blue">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">1. Select Your Current Status</h3>
           <select
@@ -322,7 +335,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
           <p className="text-xs text-gray-500 mt-2">This determines your starting tier (QuickStart focuses on Tiers 1-3).</p>
         </div>
 
-        {/* Goals */}
+        {/* Goals Section */}
         <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-leader-accent">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">2. Top 3 Leadership Goals ({goals.length}/3)</h3>
           <div className="space-y-2">
@@ -345,7 +358,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
           <p className="text-xs text-gray-500 mt-2">Your plan will heavily prioritize these areas.</p>
         </div>
 
-        {/* Ratings */}
+        {/* Self-Rating Section */}
         <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-leader-blue">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">3. Self-Rate Proficiency (1-10)</h3>
           {LEADERSHIP_TIERS.map(tier => (
@@ -359,7 +372,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
                 min="1"
                 max="10"
                 value={ratings[tier.id] || 5}
-                onChange={(e) => setRatings({ ...ratings, [tier.id]: parseInt(e.target.value) })}
+                onChange={(e) => setRatings({ ...ratings, [tier.id]: parseInt(e.target.value, 10) })}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-leader-accent"
               />
             </div>
@@ -382,7 +395,9 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
   );
 }
 
-// Tracker Dashboard
+/**
+ * The main Tracker Dashboard component.
+ */
 function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
   const [isReflectionModalOpen, setIsReflectionModalOpen] = useState(false);
   const [reflectionInput, setReflectionInput] = useState('');
@@ -485,7 +500,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
       });
 
       setMessage("Scenario submitted! Be ready to discuss it in your Leaders Circle.");
-      setScenarioInput(''); // fixed typo here
+      setScenarioInput('');
     } catch (e) {
       console.error("Error submitting scenario:", e);
       setMessage(`Error submitting scenario: ${e.message}`);
@@ -510,7 +525,10 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
 
   const { tier, theme, requiredContentIds } = currentMonthPlan;
   const tierDetails = LEADERSHIP_TIERS.find(t => t.id === tier);
-  const nextTierDetails = nextMonthPlan ? LEADERSHIP_TIERS.find(t => t.id === nextMonthPlan.tier) : null;
+
+  const nextTierDetails = nextMonthPlan
+    ? LEADERSHIP_TIERS.find(t => t.id === nextMonthPlan.tier)
+    : null;
 
   const completedItems = plan.filter(p => p.status === 'Completed').length;
 
@@ -568,6 +586,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
             <h3 className="text-xl font-bold text-gray-800 mb-2">{theme}</h3>
             <p className="text-sm text-gray-500 mb-4">Tier {tier}: {tierDetails.title}</p>
 
+            {/* Content Reps List */}
             <div className="space-y-4">
               {contentList.map((content) => (
                 <a
@@ -589,6 +608,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
               ))}
             </div>
 
+            {/* Completion Button */}
             {currentMonth < 25 && (
               <button
                 onClick={() => setIsReflectionModalOpen(true)}
@@ -607,7 +627,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
           </div>
         </div>
 
-        {/* Next Month Preview */}
+        {/* Next Month Preview (The Carrot) */}
         <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-leader-blue">
           <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
             <TrendingUp className="w-5 h-5 text-leader-blue" />
@@ -651,8 +671,9 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db }) {
   );
 }
 
-// --- MAIN APPLICATION COMPONENT ---
+// --- MAIN APPLICATION COMPONENT (Correctly Defined) ---
 function App({ firebaseConfig, initialAuthToken }) {
+  // State variables for initialized Firebase services
   const [dbService, setDbService] = useState(null);
   const [authService, setAuthService] = useState(null);
   const [userId, setUserId] = useState(null);
@@ -661,7 +682,7 @@ function App({ firebaseConfig, initialAuthToken }) {
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // 1. Initialization
+  // 1) Initialization
   useEffect(() => {
     if (isInitialized) return;
 
@@ -707,15 +728,15 @@ function App({ firebaseConfig, initialAuthToken }) {
         } else {
           setUserId(null);
         }
-        // Plan snapshot will toggle isLoading to false when it runs
+        // The data listener will clear isLoading last
       });
 
       initializeAuth();
+
       return () => {
         clearTimeout(hangTimeout);
         unsubscribe();
       };
-
     } catch (e) {
       if (e.code !== 'app/duplicate-app') {
         console.error("Critical Firebase Init Error:", e);
@@ -725,29 +746,33 @@ function App({ firebaseConfig, initialAuthToken }) {
     }
   }, [firebaseConfig, initialAuthToken, isInitialized, isLoading]);
 
-  // 2. Data Listener (Plan Retrieval)
+  // 2) Data listener
   useEffect(() => {
     if (!userId || !dbService || !isInitialized) return;
 
     const planRef = doc(dbService, 'artifacts', APP_ID, 'users', userId, 'leadership_plan', 'roadmap');
 
-    const unsubscribe = onSnapshot(planRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setUserPlanData(data);
-      } else {
-        setUserPlanData(null);
+    const unsubscribe = onSnapshot(
+      planRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setUserPlanData(data);
+        } else {
+          setUserPlanData(null);
+        }
+        setIsLoading(false);
+      },
+      (e) => {
+        if (e.code === 'permission-denied') {
+          setError("Application Error: Failed to load plan: Missing or insufficient permissions. Ensure your Firestore Security Rules are correct.");
+        } else {
+          console.error("Firestore Snapshot Error:", e);
+          setError(`Failed to load plan: ${e.message}`);
+        }
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    }, (e) => {
-      if (e.code === 'permission-denied') {
-        setError("Application Error: Failed to load plan: Missing or insufficient permissions. Ensure your Firestore Security Rules are correct.");
-      } else {
-        console.error("Firestore Snapshot Error:", e);
-        setError(`Failed to load plan: ${e.message}`);
-      }
-      setIsLoading(false);
-    });
+    );
 
     return () => unsubscribe();
   }, [userId, isInitialized, dbService]);
@@ -761,26 +786,19 @@ function App({ firebaseConfig, initialAuthToken }) {
     );
   }
 
-  // Loading / Debug Override gate
+  // Loading gate with a *real* anonymous sign-in fallback
   if (isLoading || !userId) {
-    const handleManualLoad = () => {
-      // 1) Immediately bypass to render the app
-      setUserId(prev => prev ?? 'DEBUG_USER_ID_OVERRIDE');
-      setIsLoading(false);
-
-      // 2) Try real anon sign-in in background
-      if (authService) {
-        signInAnonymously(authService)
-          .then(cred => {
-            console.log('Anon user ready:', cred.user?.uid);
-            // onAuthStateChanged will update userId if it succeeds
-          })
-          .catch(e => {
-            console.error('Anon sign-in failed (debug mode will stay local):', e);
-            setError(`Auth failed: ${e.message}`);
-          });
-      } else {
-        console.warn('Auth not initialized yet; staying in local debug mode.');
+    const handleManualLoad = async () => {
+      try {
+        if (!authService) throw new Error('Auth service not initialized yet.');
+        setIsLoading(true);
+        const cred = await signInAnonymously(authService);
+        setUserId(cred.user.uid); // real UID so your rules pass
+        setIsLoading(false);
+      } catch (e) {
+        console.error('Anon sign-in failed:', e);
+        setError(`Auth failed: ${e.message}`);
+        setIsLoading(false);
       }
     };
 
