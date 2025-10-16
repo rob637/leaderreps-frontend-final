@@ -42,8 +42,7 @@ const generatePlanData = (assessment) => { /* ... logic ... */ return [{ id: 'm1
 // --- GLOBAL SERVICE VARIABLES (Must be outside component) ---
 // These are defined globally so they can be accessed by all handler functions (markComplete, etc.)
 let app, db, auth;
-const APP_ID = "leaderreps-pd-plan"; // Fixed based on project ID
-
+const APP_ID = "leaderreps-pd-plan"; // Fixed project ID
 
 // --- COMPONENTS (Placeholders for brevity) ---
 const TitleCard = ({ title, description, icon: Icon, color = 'leader-blue' }) => ( /* ... component code ... */ <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 border-${color}`}><h2 className="text-2xl font-bold text-gray-800">{title}</h2></div>);
@@ -81,6 +80,7 @@ const App = ({ firebaseConfig, appId, initialAuthToken }) => {
 
             // Proceed with Auth after successful service setup
             const currentAuth = getAuth(app);
+            
             const initializeAuth = async () => {
                 try {
                     if (initialAuthToken) {
@@ -93,8 +93,17 @@ const App = ({ firebaseConfig, appId, initialAuthToken }) => {
                     setError(`Authentication Failed: ${e.message}`);
                 }
             };
+            
+            // Safety net: Force the loading screen to disappear after 5 seconds
+            const timeoutId = setTimeout(() => {
+                if (isLoading) {
+                    setError("Authentication timed out. Check network or refresh.");
+                    setIsLoading(false);
+                }
+            }, 5000); // 5 seconds timeout
 
             const unsubscribe = onAuthStateChanged(currentAuth, (user) => {
+                clearTimeout(timeoutId); // Clear timeout if auth completes
                 if (user) {
                     setUserId(user.uid);
                 } else {
@@ -104,7 +113,10 @@ const App = ({ firebaseConfig, appId, initialAuthToken }) => {
             });
 
             initializeAuth();
-            return () => unsubscribe();
+            return () => {
+                clearTimeout(timeoutId);
+                unsubscribe();
+            };
 
         } catch (e) {
             if (e.code !== 'app/duplicate-app') {
