@@ -14,20 +14,15 @@ const LEADERSHIP_TIERS = [
 ];
 
 const SAMPLE_CONTENT_LIBRARY = [
-    // TIER 1: Self-Awareness
     { id: 'c1', tier: 1, skill: "EQ", title: "Video: Mastering Your Focus Word", type: "Video", duration: 10, url: "#" },
     { id: 'c2', tier: 1, skill: "Self-Management", title: "Template: The Time-Audit Rep", type: "Template", duration: 20, url: "#" },
-    // TIER 2: Feedback & Coaching (QuickStart Core)
     { id: 'c3', tier: 2, skill: "Feedback", title: "Micro-Challenge: Practice the CLEAR Framework", type: "Micro-Challenge", duration: 15, url: "#" },
     { id: 'c4', tier: 2, skill: "Coaching", title: "Template: Effective 1:1 Agenda (Based on Direct's Agenda)", type: "Template", duration: 5, url: "#" },
     { id: 'c5', tier: 2, skill: "Feedback", title: "Reading: The 5:1 Magic Ratio Explained", type: "Reading", duration: 10, url: "#" },
-    // TIER 3: Execution & Accountability
     { id: 'c6', tier: 3, skill: "Delegation", title: "Case Study: Delegating vs. Dumping", type: "Case Study", duration: 25, url: "#" },
     { id: 'c7', tier: 3, skill: "Accountability", title: "Worksheet: Setting CLEAR KPIs", type: "Template", duration: 20, url: "#" },
-    // TIER 4: Communication & Vision
     { id: 'c8', tier: 4, skill: "Vision", title: "Micro-Challenge: Write Your Team's 6-Month Vision", type: "Micro-Challenge", duration: 45, url: "#" },
     { id: 'c9', tier: 4, skill: "Communication", title: "Video: Leading Change Management with Empathy", type: "Video", duration: 15, url: "#" },
-    // TIER 5: Talent & Culture (QuickStart Core)
     { id: 'c10', tier: 5, skill: "Trust", title: "Reading: Lencioni's 5 Dysfunctions of a Team Summary", type: "Reading", duration: 10, url: "#" },
     { id: 'c11', tier: 5, skill: "Culture", title: "Template: Talent Audit and Succession Planning", type: "Template", duration: 30, url: "#" },
 ];
@@ -40,14 +35,15 @@ const REFLECTION_PROMPTS = {
 };
 
 // --- HELPER FUNCTIONS ---
-const createUniqueItemSelector = (tierList) => { /* ... logic ... */ return () => 'c1'; }; // Simplified for integrity
+const createUniqueItemSelector = (tierList) => { /* ... logic ... */ return () => 'c1'; };
 const generatePlanData = (assessment) => { /* ... logic ... */ return [{ id: 'm1', month: 1, tier: 2, theme: 'Example Theme', requiredContentIds: ['c3', 'c4', 'c5'] }]; }; 
 
 
 // --- GLOBAL SERVICE VARIABLES (Must be outside component) ---
-// These are placeholders for the services which will be defined inside App.
+// These are defined globally so they can be accessed by all handler functions (markComplete, etc.)
 let app, db, auth;
-const APP_ID = "leaderreps-pd-plan"; // Hardcoded project ID for Firestore pathing stability
+const APP_ID = "leaderreps-pd-plan"; // Fixed based on project ID
+
 
 // --- COMPONENTS (Placeholders for brevity) ---
 const TitleCard = ({ title, description, icon: Icon, color = 'leader-blue' }) => ( /* ... component code ... */ <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 border-${color}`}><h2 className="text-2xl font-bold text-gray-800">{title}</h2></div>);
