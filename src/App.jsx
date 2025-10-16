@@ -3,9 +3,8 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot, updateDoc, writeBatch } from 'firebase/firestore';
 import { Home, CheckCircle, Target, Users, TrendingUp, Zap, Clock, Send, Eye, MessageSquare, Briefcase, RefreshCw } from 'lucide-react';
-// FIX: Using the direct file name. This is the most common fix for build errors
-// when using assets uploaded directly into the project's source context.
-import LeaderRepsLogo from 'image_853dcd.png'; 
+// FIX: Removed the failed JS import. The logo will now be referenced directly by filename (public path).
+// import LeaderRepsLogo from 'image_853dcd.png'; 
 
 /* =========================
    PROJECT CONSTANTS / DATA
@@ -233,7 +232,8 @@ function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
   return (
     <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 ${border}`}>
       <div className="flex items-start space-x-4">
-        <img src={LeaderRepsLogo} alt="LeaderReps Logo" className="w-32 h-auto" />
+        {/* FIX: Reference the image using a string literal, assuming public path access. */}
+        <img src="image_853dcd.png" alt="LeaderReps Logo" className="w-32 h-auto" />
       </div>
       <div className="mt-4">
           <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
