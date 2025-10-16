@@ -3,7 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot, updateDoc, writeBatch } from 'firebase/firestore';
 import { Home, CheckCircle, Target, Users, TrendingUp, Zap, Clock, Send, Eye, MessageSquare, Briefcase, RefreshCw } from 'lucide-react';
-// Removed all prior problematic logo import attempts.
+// All logo references have been dropped.
 
 /* =========================
    PROJECT CONSTANTS / DATA
@@ -221,8 +221,7 @@ const APP_ID = "leaderreps-pd-plan";
    UI SUB-COMPONENTS
    ========================= */
 
-// TitleCard reverted to its core function (styling content block), 
-// with the logo moved out to the parent components.
+// TitleCard is now the main heading component.
 function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
   const palette = {
     'leader-blue': { border: 'border-leader-blue', text: 'text-leader-blue' },
@@ -233,6 +232,7 @@ function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
   return (
     <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 ${border}`}>
         <div className="flex items-center space-x-4">
+            {/* The primary Title/Icon for the block */}
             {Icon && <Icon className={`w-8 h-8 ${text}`} />}
             <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
         </div>
@@ -403,8 +403,7 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      {/* Logo placed above the main TitleCard. Uses absolute path now confirmed to be /image_853dcd.png from the /public folder. */}
-      <img src="/image_853dcd.png" alt="LeaderReps Logo" className="w-48 h-auto mb-4" />
+      {/* Dropped logo reference */}
 
       <TitleCard
         title="1:1 Plan Generator: Your LeaderReps Roadmap"
@@ -645,8 +644,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
   
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      {/* Logo placed above the main TitleCard for Dashboard */}
-      <img src="/image_853dcd.png" alt="LeaderReps Logo" className="w-48 h-auto mb-4" />
+      {/* Dropped logo reference */}
       
       <TitleCard
         title="Your LeaderReps Tracker Dashboard"
@@ -855,7 +853,6 @@ export default function App() {
 
     const unsubscribe = onSnapshot(planRef, (docSnap) => {
       // FIX: Only perform the initial load check if userPlanData is undefined.
-      // This allows 'null' (set by Start Over) to correctly trigger the generator view.
       if (userPlanData === undefined) { 
         if (docSnap.exists()) {
             setUserPlanData(docSnap.data());
