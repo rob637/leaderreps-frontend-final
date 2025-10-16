@@ -119,8 +119,7 @@ const generatePlanData = (assessment) => {
 }; 
 
 
-// --- GLOBAL SERVICE VARIABLES (Must be outside component) ---
-let app, db, auth;
+// --- GLOBAL/SHARED SERVICE APP ID ---
 const APP_ID = "leaderreps-pd-plan"; // Fixed project ID
 
 
@@ -391,7 +390,7 @@ function PlanGenerator ({ userId, setPlanData, setIsLoading }) {
 /**
  * The main Tracker Dashboard component.
  */
-function TrackerDashboard ({ userId, userPlanData, setUserPlanData }) {
+function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }) {
     const [isReflectionModalOpen, setIsReflectionModalOpen] = useState(false);
     const [reflectionInput, setReflectionInput] = useState('');
     const [isScenarioModalOpen, setIsScenarioModalOpen] = useState(false);
