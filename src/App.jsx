@@ -3,7 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot, updateDoc, writeBatch } from 'firebase/firestore';
 import { Home, CheckCircle, Target, Users, TrendingUp, Zap, Clock, Send, Eye, MessageSquare, Briefcase, RefreshCw } from 'lucide-react';
-// Removed the problematic import statement entirely.
+// Removed all prior problematic logo import attempts.
 
 /* =========================
    PROJECT CONSTANTS / DATA
@@ -220,30 +220,9 @@ const APP_ID = "leaderreps-pd-plan";
 /* =========================
    UI SUB-COMPONENTS
    ========================= */
-// NEW COMPONENT: App Header to house the logo and prevent styling conflicts
-function AppHeader({ title, description }) {
-    // FIX: Using BASE_URL for maximum compatibility with build systems like Vite/Netlify
-    const logoPath = `${import.meta.env.BASE_URL}image_853dcd.png`;
 
-    return (
-        <div className="p-8 pb-0 max-w-6xl mx-auto">
-            <header className="flex items-center space-x-4 mb-4">
-                <img 
-                    src={logoPath} 
-                    alt="LeaderReps Logo" 
-                    className="w-48 h-auto" // Increased size for visibility
-                    style={{ minWidth: '180px' }}
-                />
-            </header>
-            <div className="bg-white p-6 rounded-xl shadow-xl border-t-4 border-leader-blue">
-                <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
-                <p className="mt-2 text-sm text-gray-500">{description}</p>
-            </div>
-        </div>
-    );
-}
-
-// SIMPLIFIED TITLE CARD - now only for internal blocks where we need the border/styling
+// TitleCard reverted to its core function (styling content block), 
+// with the logo moved out to the parent components.
 function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
   const palette = {
     'leader-blue': { border: 'border-leader-blue', text: 'text-leader-blue' },
@@ -424,9 +403,14 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      <AppHeader
+      {/* Logo placed above the main TitleCard */}
+      <img src="/image_853dcd.png" alt="LeaderReps Logo" className="w-48 h-auto mb-4" />
+
+      <TitleCard
         title="1:1 Plan Generator: Your LeaderReps Roadmap"
         description={`Welcome, ${userId}. Let's design your custom 24-month professional development plan based on the 4-session QuickStart course.`}
+        icon={Zap}
+        color="leader-accent"
       />
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -661,9 +645,14 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
   
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      <AppHeader
+      {/* Logo placed above the main TitleCard for Dashboard */}
+      <img src="/image_853dcd.png" alt="LeaderReps Logo" className="w-48 h-auto mb-4" />
+      
+      <TitleCard
         title="Your LeaderReps Tracker Dashboard"
         description={`Welcome, ${userId}. Track your progress through the 24-Month Playground Roadmap.`}
+        icon={Home}
+        color="leader-blue"
       />
     
       <div className="mt-8 bg-white p-6 rounded-xl shadow-lg">
