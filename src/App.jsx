@@ -803,28 +803,49 @@ function App ({ firebaseConfig, initialAuthToken }) {
         );
     }
 
-    if (isLoading || !userId) {
-        const handleManualLoad = () => {
-+   // 1) Immediately bypass the loading gate so the app renders.
-+   setUserId(prev => prev ?? 'DEBUG_USER_ID_OVERRIDE');
-+   setIsLoading(false);
-+
-+   // 2) Try to get a real Firebase user in the background.
-+   if (authService) {
-+     signInAnonymously(authService)
-+       .then(cred => {
-+         // onAuthStateChanged will update userId for you.
-+         console.log('Anon user ready:', cred.user?.uid);
-+       })
-+       .catch(e => {
-+         console.error('Anon sign-in failed (debug mode will stay local):', e);
-+         // Optional: surface this, but don't kick user back to loading.
-+         setError(`Auth failed: ${e.message}`);
-+       });
-+   } else {
-+     console.warn('Auth not initialized yet; staying in local debug mode.');
-+   }
-+ };
+// ...
+if (isLoading || !userId) {
+  // Define the handler here (plain JS, not in JSX):
+  const handleManualLoad = () => {
+    // 1) Immediately bypass the loading gate so the app renders.
+    setUserId(prev => prev ?? 'DEBUG_USER_ID_OVERRIDE');
+    setIsLoading(false);
+
+    // 2) Try to get a real Firebase user in the background.
+    if (authService) {
+      signInAnonymously(authService)
+        .then(cred => {
+          console.log('Anon user ready:', cred.user?.uid);
+          // onAuthStateChanged will update userId automatically.
+        })
+        .catch(e => {
+          console.error('Anon sign-in failed (debug mode will stay local):', e);
+          // Optional: show an error, but don't block the UI again.
+          setError(`Auth failed: ${e.message}`);
+        });
+    } else {
+      console.warn('Auth not initialized yet; staying in local debug mode.');
+    }
+  };
+
+  // Then return your loading UI (no `if` inside JSX)
+  return (
+    <div className="flex justify-center items-center h-screen bg-gray-50">
+      <div className="p-6 text-center text-gray-700">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-leader-accent mx-auto"></div>
+        <p className="mt-4 font-semibold">Authenticating and loading LeaderReps data...</p>
+        <button
+          onClick={handleManualLoad}
+          className="mt-6 px-4 py-2 text-xs font-medium text-white bg-red-600 rounded-lg shadow-md hover:bg-red-700 transition"
+        >
+          Load App Anyway (Debug Override)
+        </button>
+      </div>
+    </div>
+  );
+}
+// ...
+
 
         return (
             <div className="flex justify-center items-center h-screen bg-gray-50">
