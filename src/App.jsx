@@ -3,8 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot, updateDoc, writeBatch } from 'firebase/firestore';
 import { Home, CheckCircle, Target, Users, TrendingUp, Zap, Clock, Send, Eye, MessageSquare, Briefcase, RefreshCw } from 'lucide-react';
-// FIX: Removed the failed JS import. The logo will now be referenced directly by filename (public path).
-// import LeaderRepsLogo from 'image_853dcd.png'; 
+// Removed the problematic import statement entirely.
 
 /* =========================
    PROJECT CONSTANTS / DATA
@@ -221,7 +220,30 @@ const APP_ID = "leaderreps-pd-plan";
 /* =========================
    UI SUB-COMPONENTS
    ========================= */
-// UPDATED TITLE CARD TO USE LOGO
+// NEW COMPONENT: App Header to house the logo and prevent styling conflicts
+function AppHeader({ title, description }) {
+    // FIX: Using BASE_URL for maximum compatibility with build systems like Vite/Netlify
+    const logoPath = `${import.meta.env.BASE_URL}image_853dcd.png`;
+
+    return (
+        <div className="p-8 pb-0 max-w-6xl mx-auto">
+            <header className="flex items-center space-x-4 mb-4">
+                <img 
+                    src={logoPath} 
+                    alt="LeaderReps Logo" 
+                    className="w-48 h-auto" // Increased size for visibility
+                    style={{ minWidth: '180px' }}
+                />
+            </header>
+            <div className="bg-white p-6 rounded-xl shadow-xl border-t-4 border-leader-blue">
+                <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+                <p className="mt-2 text-sm text-gray-500">{description}</p>
+            </div>
+        </div>
+    );
+}
+
+// SIMPLIFIED TITLE CARD - now only for internal blocks where we need the border/styling
 function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
   const palette = {
     'leader-blue': { border: 'border-leader-blue', text: 'text-leader-blue' },
@@ -231,17 +253,15 @@ function TitleCard({ title, description, icon: Icon, color = 'leader-blue' }) {
 
   return (
     <div className={`p-6 bg-white shadow-xl rounded-xl border-t-4 ${border}`}>
-      <div className="flex items-start space-x-4">
-        {/* FIX: Reference the image using a string literal with an absolute path. */}
-        <img src="/image_853dcd.png" alt="LeaderReps Logo" className="w-32 h-auto" />
-      </div>
-      <div className="mt-4">
-          <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
-          <p className="mt-2 text-sm text-gray-500">{description}</p>
-      </div>
+        <div className="flex items-center space-x-4">
+            {Icon && <Icon className={`w-8 h-8 ${text}`} />}
+            <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+        </div>
+        <p className="mt-2 text-sm text-gray-500">{description}</p>
     </div>
   );
 }
+
 
 function ReflectionModal({ isOpen, monthData, reflectionInput, setReflectionInput, onSubmit, onClose }) {
   if (!isOpen || !monthData) return null;
@@ -404,11 +424,9 @@ function PlanGenerator({ userId, setPlanData, setIsLoading, db }) {
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      <TitleCard
+      <AppHeader
         title="1:1 Plan Generator: Your LeaderReps Roadmap"
         description={`Welcome, ${userId}. Let's design your custom 24-month professional development plan based on the 4-session QuickStart course.`}
-        icon={Zap}
-        color="leader-accent"
       />
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -600,7 +618,7 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
     prompt("Feedback Link (Copy and Share)", feedbackUrl);
   };
   
-  // FIX: Function to force the app back to the Plan Generator without Firestore reloading immediately
+  // Function to force the app back to the Plan Generator without Firestore reloading immediately
   const handleStartOver = () => {
       if (window.confirm("Are you sure you want to start a NEW plan? This will clear your local view and allow you to create a new plan, overwriting the old one in Firestore when you complete the generator.")) {
           // This sets userPlanData to null, immediately triggering the PlanGenerator view
@@ -643,11 +661,9 @@ function TrackerDashboard({ userId, userPlanData, setUserPlanData, db, APP_ID })
   
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      <TitleCard
+      <AppHeader
         title="Your LeaderReps Tracker Dashboard"
         description={`Welcome, ${userId}. Track your progress through the 24-Month Playground Roadmap.`}
-        icon={Home}
-        color="leader-blue"
       />
     
       <div className="mt-8 bg-white p-6 rounded-xl shadow-lg">
@@ -796,7 +812,7 @@ export default function App() {
   const [dbService, setDbService] = useState(null);
   const [authService, setAuthService] = useState(null);
   const [authUid, setAuthUid] = useState(null);
-  const [userPlanData, setUserPlanData] = useState(undefined); // FIX: Use 'undefined' initially
+  const [userPlanData, setUserPlanData] = useState(undefined); 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialized, setInitialized] = useState(false);
@@ -849,8 +865,8 @@ export default function App() {
     const planRef = doc(dbService, 'artifacts', APP_ID, 'users', authUid, 'leadership_plan', 'roadmap');
 
     const unsubscribe = onSnapshot(planRef, (docSnap) => {
-      // FIX: Load initial data, but avoid overwriting local state change (Start Over)
-      // If userPlanData is 'undefined', it means we haven't checked the database yet.
+      // FIX: Only perform the initial load check if userPlanData is undefined.
+      // This allows 'null' (set by Start Over) to correctly trigger the generator view.
       if (userPlanData === undefined) { 
         if (docSnap.exists()) {
             setUserPlanData(docSnap.data());
