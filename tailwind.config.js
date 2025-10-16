@@ -1,12 +1,13 @@
+// tailwind.config.cjs
 /** @type {import('tailwindcss').Config} */
-export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+module.exports = {
+  content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        "leader-blue": "#1e40af",    // tweak if you have brand hex
-        "leader-accent": "#ea580c",  // orange-ish
-        "leader-light": "#f8fafc",   // very light gray
+        'leader-blue': '#1d4ed8',
+        'leader-accent': '#ea580c',
+        'leader-light': '#fff7ed',
       },
     },
   },

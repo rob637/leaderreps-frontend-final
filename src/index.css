@@ -3,8 +3,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Optional global base styles (valid use of @apply) */
-@layer base {
-  html, body, #root { height: 100%; }
-  body { @apply bg-gray-50 text-gray-800; }
+/* Global tweaks */
+:root {
+  font-synthesis-weight: none;
+}
+
+/* If you want a gray background globally, do it with @apply */
+body {
+  @apply bg-gray-50 text-gray-900;
 }
