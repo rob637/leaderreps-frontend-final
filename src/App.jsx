@@ -209,7 +209,7 @@ function ScenarioModal ({ isOpen, scenarioInput, setScenarioInput, onSubmit, onC
                     Leaders Circle Prep: Scenario Submission
                 </h3>
                 <p className="text-sm text-gray-700 mb-4">
-                    Briefly describe a situation in which you struggled to show up as your best leadership self, or describe an upcoming situation you are unsure about. This is for your cohort/trainer session.
+                    Briefly describe a situation in which you struggled to show up as your best leadership self, or describe an upcoming situation you are unsure about.
                 </p>
 
                 <textarea
@@ -246,7 +246,7 @@ function ScenarioModal ({ isOpen, scenarioInput, setScenarioInput, onSubmit, onC
 /**
  * The Plan Generator component (simulates the 1-on-1 session).
  */
-function PlanGenerator ({ userId, setPlanData, setIsLoading }) {
+function PlanGenerator ({ userId, setPlanData, setIsLoading, db }) {
     const [status, setStatus] = useState('New Manager');
     const [goals, setGoals] = useState([]);
     const [ratings, setRatings] = useState({});
@@ -661,6 +661,9 @@ function TrackerDashboard ({ userId, userPlanData, setUserPlanData, db, APP_ID }
 
 // --- MAIN APPLICATION COMPONENT (Correctly Defined) ---
 function App ({ firebaseConfig, appId, initialAuthToken }) {
+    // State variables for initialized Firebase services
+    const [dbService, setDbService] = useState(null);
+    const [authService, setAuthService] = useState(null);
     const [userId, setUserId] = useState(null);
     const [userPlanData, setUserPlanData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -680,20 +683,22 @@ function App ({ firebaseConfig, appId, initialAuthToken }) {
 
         try {
             // Initialize services only once
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
+            const appInstance = initializeApp(firebaseConfig);
+            const dbInstance = getFirestore(appInstance);
+            const authInstance = getAuth(appInstance);
+            
+            setDbService(dbInstance);
+            setAuthService(authInstance);
             setIsInitialized(true); // Mark initialization complete
 
             // Proceed with Auth after successful service setup
-            const currentAuth = getAuth(app);
             
             const initializeAuth = async () => {
                 try {
                     if (initialAuthToken) {
-                        await signInWithCustomToken(currentAuth, initialAuthToken);
+                        await signInWithCustomToken(authInstance, initialAuthToken);
                     } else {
-                        await signInAnonymously(currentAuth);
+                        await signInAnonymously(authInstance);
                     }
                 } catch (e) {
                     console.error("Auth Error:", e);
@@ -709,7 +714,7 @@ function App ({ firebaseConfig, appId, initialAuthToken }) {
                 }
             }, 7000); // 7 seconds timeout
 
-            const unsubscribe = onAuthStateChanged(currentAuth, (user) => {
+            const unsubscribe = onAuthStateChanged(authInstance, (user) => {
                 clearTimeout(hangTimeout); // <--- THIS LINE STOPS THE HANG TIMER
                 if (user) {
                     setUserId(user.uid);
@@ -737,10 +742,11 @@ function App ({ firebaseConfig, appId, initialAuthToken }) {
 
     // 2. Data Listener (Plan Retrieval)
     useEffect(() => {
-        if (!userId || !db || !isInitialized) return;
+        // Use dbService here instead of the external db
+        if (!userId || !dbService || !isInitialized) return;
 
         // Plan reference must be defined here, inside useEffect, to ensure db and userId are initialized
-        const planRef = doc(db, `/artifacts/${APP_ID}/users/${userId}/leadership_plan`, 'roadmap');
+        const planRef = doc(dbService, `/artifacts/${APP_ID}/users/${userId}/leadership_plan`, 'roadmap');
 
         const unsubscribe = onSnapshot(planRef, (docSnap) => {
             if (docSnap.exists()) {
@@ -762,7 +768,7 @@ function App ({ firebaseConfig, appId, initialAuthToken }) {
         });
 
         return () => unsubscribe();
-    }, [userId, isInitialized]);
+    }, [userId, isInitialized, dbService]); // Added dbService to dependencies
 
 
     if (error) {
@@ -800,10 +806,11 @@ function App ({ firebaseConfig, appId, initialAuthToken }) {
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans">
+            {/* Pass dbService down to helper components */}
             {!userPlanData ? (
-                <PlanGenerator userId={userId} setPlanData={setUserPlanData} setIsLoading={setIsLoading} />
+                <PlanGenerator userId={userId} setPlanData={setUserPlanData} setIsLoading={setIsLoading} db={dbService} APP_ID={APP_ID} />
             ) : (
-                <TrackerDashboard userId={userId} userPlanData={userPlanData} setUserPlanData={setUserPlanData} />
+                <TrackerDashboard userId={userId} userPlanData={userPlanData} setUserPlanData={setUserPlanData} db={dbService} APP_ID={APP_ID} />
             )}
             <p className="fixed bottom-2 left-2 text-xs text-gray-400">User ID: {userId}</p>
         </div>
